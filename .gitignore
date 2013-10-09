@@ -1,3 +1,6 @@
+simulation/Ants
+*.ants
+*.dll
 dist
 cabal-dev
 *.o
