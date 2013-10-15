@@ -46,3 +46,15 @@ findProgram name [] = Nothing
 move :: (FunctionDict -> String) -> FunctionDict -> String
 move k fd = "move " ++ show (lookupFunctionDict fd (k fd))
 
+-- Well that FAILS
+
+-- Alternative: try to create parametrized functions that directly print ant code
+strategy1 offset = ["move " ++ f 1, "move " ++ f 2, "move " ++ f 0]
+  where
+    f n = show(offset + n)
+
+compile code = foldl1 (\a b -> a++"\n"++b) $ code 0
+
+main =
+  do
+    putStr $ compile strategy1
