@@ -1,5 +1,12 @@
-ants
+Ants
 ====
+
+![Ant brains!](ants.jpg)
+
+
+
+Useful links
+------------
 
 Hier is een linkje naar een wikipedia artikel dat gaat over ant colony algorithms.
 
