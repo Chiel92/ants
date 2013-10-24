@@ -2,6 +2,7 @@ module AntBrains where
 
 import AntSkull
 import Prelude hiding (drop, Right, Left)
+import Control.Monad.State
 
 -- Some function line numbers
 _START   = 0
@@ -10,6 +11,23 @@ _GO_HOME = 9
 -- Some markers
 _FOE  = 0
 _FOOD = 1
+
+
+test_main :: IO ()
+test_main =
+  do
+    runStateT test_program 0
+    return ()
+
+test_program :: StateT Int IO ()
+test_program =
+  do
+    random (0.2) 0 0
+    comment "BOO"
+    random (0.5) 0 0
+    comment "BOO"
+    random (0.4) 0 0
+
 
 
 main :: IO ()

@@ -56,41 +56,29 @@ rand :: Int -> Int -> Int -> StateT Int IO ()
 rand = compile "Flip"
 
 
+comment :: String -> StateT Int IO ()
+comment s = liftIO $ putStrLn ("; " ++ s)
+
+
 -- Our extension functions
-
-random' :: Float -> Int -> Int -> StateT Int IO ()
-random' p k1 k2 =
-  do
-    n <- get
-    rand n k1 k2
-
-
-main :: IO ()
-main =
-  do
-    runStateT program 0
-    return ()
-
-program :: StateT Int IO ()
-program =
-  do
-    random' 3 0 0
-    random' 3 0 0
-    random' 3 0 0
-    random' 3 0 0
-    random' 3 0 0
-    random' 3 0 0
 
 -- Create a decent randomizer in terms of the Flip randomizer
 -- Gets its current line number, the percentage in [0, 100], and the two state parameters
-random :: Int -> Float -> Int -> Int -> IO ()
-random lineNr p k1 k2 = putStrLn $ rtree p 50 1 -- I NEED MY CURRENT LINE NUMBER!!!
+random :: Float -> Int -> Int -> StateT Int IO ()
+random p k1 k2 =
+  do
+    n <- get
+    rtree n p 50 1
       where
-        rtree :: Float -> Float -> Int -> String
-        rtree p q d | close p q = compile "Flip" k1 k2
-                    | otherwise = if p < q
-                                  then (compile "Flip" (lineNr+d) k2) ++ "\n" ++ rtree p (q - getP (d+1)) (d+1)
-                                  else (compile "Flip" k1 (lineNr+d)) ++ "\n" ++ rtree p (q + getP (d+1)) (d+1)
+        rtree :: Int -> Float -> Float -> Int -> StateT Int IO ()
+        rtree lineNr p q d | close p q = rand 2 k1 k2
+                           | otherwise = if p < q
+                                  then do
+                                      rand 2 (lineNr+d) k2
+                                      rtree lineNr p (q - getP (d+1)) (d+1)
+                                  else do
+                                      rand 2 k1 (lineNr+d)
+                                      rtree lineNr p (q + getP (d+1)) (d+1)
 
         -- Check if the current probability is close enough to the wanted probability
         close :: Float -> Float -> Bool
@@ -102,7 +90,7 @@ random lineNr p k1 k2 = putStrLn $ rtree p 50 1 -- I NEED MY CURRENT LINE NUMBER
 
 -- Check a condition in all adjacent directions
 -- Gets its current line number, the two state parameters and the condition
-senseAdj :: Int -> Int -> Int -> Condition -> IO ()
+senseAdj :: Int -> Int -> Int -> Condition -> StateT Int IO ()
 senseAdj lineNr k1 k2 cond = do -- I NEED MY CURRENT LINE NUMBER!!!
     sense Ahead k1 (lineNr+1) cond
     sense LeftAhead k1 (lineNr+1) cond
