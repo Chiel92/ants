@@ -5,10 +5,11 @@ import Prelude hiding (drop, Right, Left)
 import Control.Monad.State
 
 -- Some function line numbers
-_START        = 0
-_TELL_FOOD    = 4
-_TELL_FOEHOME = 3
-_GET_FOOD     = 5
+_START        = 0          -- First
+_TELL_FOEHOME = 12         -- #Start
+_TELL_FOOD    = 12+2       -- #Start + #TellFoeHome
+_GET_FOOD     = 0          -- First
+_PILLAGE_RAID = 12+2+14    -- #Start + #TellFoeHome + #TellFood
 
 -- The markers
 _FOEHOME = 0
@@ -17,8 +18,12 @@ _FOOD    = 1
 
 -- A main function to run the stuff
 main :: IO ()
-main = do
-    runStateT program 0
+main = debug program
+
+-- And one to debug strategy programs
+debug :: StateT Int IO () -> IO ()
+debug prog = do
+    runStateT prog 0
     return ()
 
 -- Our strategy
@@ -26,8 +31,8 @@ program :: StateT Int IO ()
 program = do
     -- We start by searching anything, food, enemies, whatever.               CURRENTLY FOOD ONLY
     start
-    -- After we found anything, lets go tell the others what we found         CURRENTLY FOOD ONLY
-    tell_others _FOEHOME
+    -- After we found anything, lets go tell the others what we found
+    tell_foehome
     tell_food
 
     -- Good, now we know the important things, so lets go pillage and raid. Arrrrrr!
@@ -36,30 +41,37 @@ program = do
 
 -- The implementation functions for our strategy
 start :: StateT Int IO ()
-start = do
+start = do                          -- Total: 12 = 1 + 6+1 + 5-1
+    comment "Start"
     lnr <- get
-    senseAdj (lnr+1) (lnr+2) Food   -- 0: IF    there is food
-    turnAround _TELL_FOOD         -- 1: THEN  turn around (because we want to run away) and start telling the others about the food
-    randomMove lnr                -- 2: ELSE  do one step of a random walk and go on with what we do
+    senseAdj (lnr+3) (lnr+6) Food   -- 0: IF    there is food
+    turnAround _TELL_FOOD           -- 3: THEN  turn around (because we want to run away) and start telling the others about the food
+    randomMove lnr                  -- 6: ELSE  do one step of a random walk and go on with what we do
+
+tell_foehome :: StateT Int IO ()
+tell_foehome = do                   -- Total: 2 = 1 + 0+1 + 1-1
+    comment "Tell FoeHome"
+    move 0 0                        -- 0: Do nothing useful inparticular
 
 tell_food :: StateT Int IO ()
-tell_food = do
+tell_food = do                                             -- Total: 14 = 1 + 8+1 + 5-1
+    comment "Tell Food"
     lnr <- get
-    nextL $ \n -> mark _FOOD n                       -- 3: tell others our mark
-    nextL $ \n -> sense Ahead n (lnr+3) Home     -- 4: IF   the cell in front of me is my anthill
-    nextL $ \n -> move n lnr                     -- 5: THEN move onto anthill
-    drop _GET_FOOD                             -- 6:      drop food and return to searching
-    randomMove lnr                             -- 7: ELSE do one step of the random walk and go on
+    nextL $ \n -> mark _FOOD n                             -- 0: tell others our mark
+    senseAdjMove (lnr+7) lnr (lnr+8) Home                  -- 1: IF   an adjacent cell is my anthill and I moved there
+    drop _GET_FOOD                                         -- 7: THEN drop the food and return to searching
+    randomMove lnr                                         -- 8: ELSE do one step of the random walk and go on
 
-tell_others :: Int -> StateT Int IO ()
-tell_others m = do
+pillage_raid :: StateT Int IO ()
+pillage_raid = do                             -- Total: 2
+    comment "Pillage and Raid - Arrrr"
     move 0 0
 
 rally_troops :: StateT Int IO ()
 rally_troops = do
     move 0 0
 
-pillage_raid :: StateT Int IO ()
-pillage_raid = do
+run :: StateT Int IO ()
+run = do
     move 0 0
 
