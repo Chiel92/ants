@@ -50,7 +50,7 @@ start = do
 tell_others :: Mark -> StateT Int IO ()
 tell_others m = do
     lnr <- get
-    sense Ahead nextLnr 11 Home   -- 9: IF the cell in front of me is my anthill
+    sense Ahead (lnr + 1) 11 Home -- 9: IF the cell in front of me is my anthill
     move 10 8                     -- 10: THEN   move onto anthill
     drop _START                   -- 11:      drop food and return to searching
     rand 3 12 13                  -- 12: ELSE choose whether to...
@@ -67,5 +67,3 @@ pillage_raid :: StateT Int IO ()
 pillage_raid = do
     move 0 0
 
-
-curL = undefined
