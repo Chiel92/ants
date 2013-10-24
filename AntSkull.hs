@@ -98,9 +98,12 @@ senseAdj lineNr k1 k2 cond = do -- I NEED MY CURRENT LINE NUMBER!!!
 
 -- Turn multiple times
 -- Gets the nurmal turn parameters: a turn direction {Left, Right} and the state paramweter
-turn2 :: Turn -> Int -> IO ()
-turn2 t k = turn t k >> turn t k -- DOESNT WORK - NEEDS CURRENT LINE NUMBER!
+turn2 :: Turn -> Int -> StateT Int IO ()
+turn2 t k = turn t nextLnr >> turn t k
 
-turnAround :: Int -> IO ()
-turnAround k = turn AntSkull.Right k >> turn AntSkull.Right k >> turn AntSkull.Right k -- DOESNT WORK - NEEDS CURRENT LINE NUMBER!
+turnAround :: Int -> StateT Int IO ()
+turnAround k = turn AntSkull.Right nextLnr >> turn AntSkull.Right nextLnr >> turn AntSkull.Right k
+
+currentLnr = undefined
+nextLnr = undefined
 
