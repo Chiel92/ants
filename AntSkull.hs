@@ -100,3 +100,11 @@ random lineNr p k1 k2 = putStrLn $ rtree p 50 1 -- I NEED MY CURRENT LINE NUMBER
         getP :: Int -> Float
         getP d = 100 / (2 ** (fromIntegral d))
 
+-- Check a condition in all adjacent directions
+-- Gets its current line number, the two state parameters and the condition
+senseAdj :: Int -> Int -> Int -> Condition -> IO ()
+senseAdj lineNr k1 k2 cond = do -- I NEED MY CURRENT LINE NUMBER!!!
+    sense Ahead k1 (lineNr+1) cond
+    sense LeftAhead k1 (lineNr+1) cond
+    sense RightAhead k1 k2 cond
+
