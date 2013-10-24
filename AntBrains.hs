@@ -23,6 +23,8 @@ main = do
 -- Our strategy
 program :: StateT Int IO ()
 program = do
+    randomMove 1
+    comment "END TEST"
     -- We start by searching anything, food, enemies, whatever.               CURRENTLY FOOD ONLY
     start
     -- After we found anything, lets go tell the others what we found         CURRENTLY FOOD ONLY
@@ -37,7 +39,7 @@ program = do
 start :: StateT Int IO ()
 start = do
     lnr <- get
-    curL \l -> senseAdj 0 1 (l+2) Food   -- 0: IF there is food
+    curL $ \l -> senseAdj 0 1 (l+2) Food   -- 0: IF there is food
     turnAround _TELL_FOOD                -- 1: THEN  turn around (because we want to run away) and start telling the others about the foehome
     rand 3 4 5                           -- 2: ELSE  choose whether to...
     turn Left 0                          -- 3:       turn left and return to state 0
@@ -65,3 +67,5 @@ pillage_raid :: StateT Int IO ()
 pillage_raid = do
     move 0 0
 
+
+curL = undefined

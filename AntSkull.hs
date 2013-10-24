@@ -2,6 +2,7 @@
 module AntSkull where
 
 import Control.Monad.State
+import Prelude hiding (Left, Right)
 
 
 -- A nice way to print our functions
@@ -62,6 +63,16 @@ comment s = liftIO $ putStrLn ("; " ++ s)
 
 -- Our extension functions
 
+randomMove :: Int -> StateT Int IO ()
+randomMove k =
+  do
+    n <- get
+    random 50 (n+4) (n+1) -- n
+    random 50 (n+2) (n+3) -- n+1
+    turn Right (n+4)      -- n+2
+    turn Left (n+4)       -- n+3
+    move n k              -- n+4
+
 -- Create a decent randomizer in terms of the Flip randomizer
 -- Gets its current line number, the percentage in [0, 100], and the two state parameters
 random :: Float -> Int -> Int -> StateT Int IO ()
@@ -104,3 +115,4 @@ turn2 t k = turn t nextLnr >> turn t k
 turnAround :: Int -> StateT Int IO ()
 turnAround k = turn AntSkull.Right nextLnr >> turn AntSkull.Right nextLnr >> turn AntSkull.Right k
 
+nextLnr = undefined
