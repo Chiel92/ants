@@ -104,6 +104,3 @@ turn2 t k = turn t nextLnr >> turn t k
 turnAround :: Int -> StateT Int IO ()
 turnAround k = turn AntSkull.Right nextLnr >> turn AntSkull.Right nextLnr >> turn AntSkull.Right k
 
-currentLnr = undefined
-nextLnr = undefined
-

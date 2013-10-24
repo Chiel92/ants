@@ -23,9 +23,9 @@ main = do
 -- Our strategy
 program :: StateT Int IO ()
 program = do
-    -- We start by searching anything, food, enemies, whatever.               CURRENTLY FOES ONLY
+    -- We start by searching anything, food, enemies, whatever.               CURRENTLY FOOD ONLY
     start
-    -- After we found anything, lets go tell the others what we found         CURRENTLY FOES ONLY
+    -- After we found anything, lets go tell the others what we found         CURRENTLY FOOD ONLY
     tell_others _FOEHOME
     tell_others _FOOD -- (The other function - line numbers incorrect)
 
@@ -36,18 +36,18 @@ program = do
 -- The implementation functions for our strategy
 start :: StateT Int IO ()
 start = do
-    _Lnr <- get
-    senseAdj 0 1 3 Food     -- 0: IF there is food
-    turnAround _TELL_FOOD   -- 1: THEN  turn around (because we want to run away) and start telling the others about the foehome
-    rand 3 4 5              -- 4: ELSE  choose whether to...
-    turn Left 0             -- 5:       turn left and return to state 0
-    rand 2 6 7              -- 6:       ...or...
-    turn Right 0            -- 7:       turn right and return to state 0
-    move 0 3                -- 8:       ...or move forward and return to state 0 (or 3 on failure)
+    lnr <- get
+    curL \l -> senseAdj 0 1 (l+2) Food   -- 0: IF there is food
+    turnAround _TELL_FOOD                -- 1: THEN  turn around (because we want to run away) and start telling the others about the foehome
+    rand 3 4 5                           -- 2: ELSE  choose whether to...
+    turn Left 0                          -- 3:       turn left and return to state 0
+    rand 2 6 7                           -- 4:       ...or...
+    turn Right 0                         -- 5:       turn right and return to state 0
+    move 0 3                             -- 6:       ...or move forward and return to state 0 (or 3 on failure)
 
 tell_others :: Mark -> StateT Int IO ()
 tell_others m = do
-    _Lnr <- get
+    lnr <- get
     sense Ahead nextLnr 11 Home   -- 9: IF the cell in front of me is my anthill
     move 10 8                     -- 10: THEN   move onto anthill
     drop _START                   -- 11:      drop food and return to searching
