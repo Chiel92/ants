@@ -96,3 +96,11 @@ senseAdj lineNr k1 k2 cond = do -- I NEED MY CURRENT LINE NUMBER!!!
     sense LeftAhead k1 (lineNr+1) cond
     sense RightAhead k1 k2 cond
 
+-- Turn multiple times
+-- Gets the nurmal turn parameters: a turn direction {Left, Right} and the state paramweter
+turn2 :: Turn -> Int -> IO ()
+turn2 t k = turn t k >> turn t k -- DOESNT WORK - NEEDS CURRENT LINE NUMBER!
+
+turnAround :: Int -> IO ()
+turnAround k = turn AntSkull.Right k >> turn AntSkull.Right k >> turn AntSkull.Right k -- DOESNT WORK - NEEDS CURRENT LINE NUMBER!
+

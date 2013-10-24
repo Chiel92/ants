@@ -8,9 +8,9 @@ import Control.Monad.State
 _START   = 0
 _GO_HOME = 9
 
--- Some markers
-_FOE  = 0
-_FOOD = 1
+-- The markers
+_FOEHOME = 0
+_FOOD    = 1
 
 
 test_main :: IO ()
@@ -35,7 +35,7 @@ main = do
     -- We start by searching anything, food, enemies, whatever.               CURRENTLY FOES ONLY
     start
     -- After we found anything, lets go tell the others what we found         CURRENTLY FOES ONLY
-    tell_others _FOE
+    tell_others _FOEHOME
     tell_others _FOOD -- (The other function - line numbers incorrect)
 
     -- Good, now we know the important things, so lets go pillage and raid. Arrrrrr!
@@ -43,11 +43,9 @@ main = do
 
 start :: IO ()
 start = do
-    f_nr <- get
-    senseAdj 0 1 3 Foe      -- 0: IF ENEMIES
-    mark _FOE 2             -- 1: THEN  Inform the others
-    move 2 0                -- 2:       move onto food (return to state 0 on failure)
-    pickup _GO_HOME 0       -- 3:       pick up food and jump to state 8 (or 0 on failure)
+    -- f_nr <- get
+    senseAdj 0 1 3 Food     -- 0: IF there is food
+    turnAround 2            -- 1: THEN  turn around (because we want to run away) and start telling the others about the foehome
     rand 3 4 5              -- 4: ELSE  choose whether to...
     turn Left 0             -- 5:       turn left and return to state 0
     rand 2 6 7              -- 6:       ...or...
@@ -65,6 +63,10 @@ tell_others m = do
     rand 2 14 15            -- 14:      ...or...
     turn Right 8            -- 15:      turn right and return to state 8
     move 8 11               -- 16:      ...or move forward and return to state 8
+
+rally_troops :: IO ()
+rally_troops = do
+    move 0 0
 
 pillage_raid :: IO ()
 pillage_raid = do
