@@ -6,8 +6,9 @@ import Control.Monad.State
 
 -- Some function line numbers
 _START        = 0
-_TELL_FOOD    = 18
-_TELL_FOEHOME = 0
+_TELL_FOOD    = 4
+_TELL_FOEHOME = 3
+_GET_FOOD     = 5
 
 -- The markers
 _FOEHOME = 0
@@ -23,13 +24,11 @@ main = do
 -- Our strategy
 program :: StateT Int IO ()
 program = do
-    randomMove 1
-    comment "END TEST"
     -- We start by searching anything, food, enemies, whatever.               CURRENTLY FOOD ONLY
     start
     -- After we found anything, lets go tell the others what we found         CURRENTLY FOOD ONLY
     tell_others _FOEHOME
-    tell_others _FOOD -- (The other function - line numbers incorrect)
+    tell_food
 
     -- Good, now we know the important things, so lets go pillage and raid. Arrrrrr!
     pillage_raid
@@ -39,25 +38,22 @@ program = do
 start :: StateT Int IO ()
 start = do
     lnr <- get
-    curL $ \l -> senseAdj 0 1 (l+2) Food   -- 0: IF there is food
-    turnAround _TELL_FOOD                -- 1: THEN  turn around (because we want to run away) and start telling the others about the foehome
-    rand 3 4 5                           -- 2: ELSE  choose whether to...
-    turn Left 0                          -- 3:       turn left and return to state 0
-    rand 2 6 7                           -- 4:       ...or...
-    turn Right 0                         -- 5:       turn right and return to state 0
-    move 0 3                             -- 6:       ...or move forward and return to state 0 (or 3 on failure)
+    senseAdj (lnr+1) (lnr+2) Food   -- 0: IF    there is food
+    turnAround _TELL_FOOD         -- 1: THEN  turn around (because we want to run away) and start telling the others about the food
+    randomMove lnr                -- 2: ELSE  do one step of a random walk and go on with what we do
 
-tell_others :: Mark -> StateT Int IO ()
-tell_others m = do
+tell_food :: StateT Int IO ()
+tell_food = do
     lnr <- get
-    sense Ahead (lnr + 1) 11 Home -- 9: IF the cell in front of me is my anthill
-    move 10 8                     -- 10: THEN   move onto anthill
-    drop _START                   -- 11:      drop food and return to searching
-    rand 3 12 13                  -- 12: ELSE choose whether to...
-    turn Left 8                   -- 13:      turn left and return to state 8
-    rand 2 14 15                  -- 14:      ...or...
-    turn Right 8                  -- 15:      turn right and return to state 8
-    move 8 11                     -- 16:      ...or move forward and return to state 8
+    nextL $ \n -> mark _FOOD n                       -- 3: tell others our mark
+    nextL $ \n -> sense Ahead n (lnr+3) Home     -- 4: IF   the cell in front of me is my anthill
+    nextL $ \n -> move n lnr                     -- 5: THEN move onto anthill
+    drop _GET_FOOD                             -- 6:      drop food and return to searching
+    randomMove lnr                             -- 7: ELSE do one step of the random walk and go on
+
+tell_others :: Int -> StateT Int IO ()
+tell_others m = do
+    move 0 0
 
 rally_troops :: StateT Int IO ()
 rally_troops = do

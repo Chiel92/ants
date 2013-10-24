@@ -101,10 +101,11 @@ random p k1 k2 =
 
 -- Check a condition in all adjacent directions
 -- Gets its current line number, the two state parameters and the condition
-senseAdj :: Int -> Int -> Int -> Condition -> StateT Int IO ()
-senseAdj lineNr k1 k2 cond = do -- I NEED MY CURRENT LINE NUMBER!!!
-    sense Ahead k1 (lineNr+1) cond
-    sense LeftAhead k1 (lineNr+1) cond
+senseAdj :: Int -> Int -> Condition -> StateT Int IO ()
+senseAdj k1 k2 cond = do
+    lnr <- get
+    sense Ahead k1 (lnr+1) cond
+    sense LeftAhead k1 (lnr+1) cond
     sense RightAhead k1 k2 cond
 
 -- Turn multiple times
