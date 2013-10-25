@@ -6,10 +6,10 @@ import Control.Monad.State
 
 -- Some function line numbers
 _START        = 0          -- First
-_TELL_FOEHOME = 15         -- #Start
-_TELL_FOOD    = 15+1       -- #Start + #TellFoeHome
+_TELL_FOEHOME = 18         -- #Start
+_TELL_FOOD    = 18+1       -- #Start + #TellFoeHome
 _GET_FOOD     = 0          -- First
-_PILLAGE_RAID = 15+1+13    -- #Start + #TellFoeHome + #TellFood
+_PILLAGE_RAID = 18+1+13    -- #Start + #TellFoeHome + #TellFood
 
 -- The markers
 _FOEHOME = 0
@@ -41,12 +41,12 @@ program = do
 
 -- The implementation functions for our strategy
 start :: StateT Int IO ()
-start = do                                       -- Total: 15 = 10+1 + 5-1
+start = do                                                    -- Total: 18 = 13+1 + 5-1
     lnr <- get
-    senseAdjMove (lnr+6) (lnr+10) (lnr+10) Food  -- 0:  IF    there is food and we moved to it
-    nextL $ \n -> pickup n (lnr+10)              -- 6:  THEN  pickup the food
-    turnAround _TELL_FOOD                        -- 7:        turn around (because we want to run away) and start telling the others about the food
-    randomMove lnr                               -- 10: ELSE  do one step of a random walk and go on with what we do
+    senseAdjMoveAndNot (lnr+9) (lnr+13) (lnr+13) Food Home    -- 0:  IF    there is food (not on Home) and we moved to it
+    nextL $ \n -> pickup n (lnr+13)                           -- 9:  THEN  pickup the food
+    turnAround _TELL_FOOD                                     -- 10:       turn around (because we want to run away) and start telling the others about the food
+    randomMove lnr                                            -- 13: ELSE  do one step of a random walk and go on with what we do
 
 tell_foehome :: StateT Int IO ()
 tell_foehome = do                   -- Total: 1 = 0+1 + 1-1
