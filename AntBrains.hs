@@ -6,10 +6,10 @@ import Control.Monad.State
 
 -- Some function line numbers
 _START        = 0          -- First
-_TELL_FOEHOME = 26         -- #Start
-_TELL_FOOD    = 26+1       -- #Start + #TellFoeHome
+_TELL_FOEHOME = 29         -- #Start
+_TELL_FOOD    = 29+1       -- #Start + #TellFoeHome
 _GET_FOOD     = 0          -- First
-_PILLAGE_RAID = 26+1+13    -- #Start + #TellFoeHome + #TellFood
+_PILLAGE_RAID = 29+1+13    -- #Start + #TellFoeHome + #TellFood
 
 -- The markers
 _FOEHOME = 0
@@ -41,12 +41,12 @@ program = do
 
 -- The implementation functions for our strategy
 start :: StateT Int IO ()
-start = do                                       -- Total: 26 = 10+1 + 16-1
+start = do                                                    -- Total: 29 = 13+1 + 16-1
     lnr <- get
-    senseAdjMove (lnr+6) (lnr+10) (lnr+10) Food  -- 0:  IF    there is food and we moved to it
-    nextL $ \n -> pickup n (lnr+10)              -- 6:  THEN  pickup the food
-    turnAround _TELL_FOOD                        -- 7:        turn around (because we want to run away) and start telling the others about the food
-    biasedMove lnr                               -- 10: ELSE  do one step of a random walk and go on with what we do
+    senseAdjMoveAndNot (lnr+9) (lnr+13) (lnr+13) Food Home    -- 0:  IF    there is food (not on Home) and we moved to it
+    nextL $ \n -> pickup n (lnr+13)                           -- 9:  THEN  pickup the food
+    turnAround _TELL_FOOD                                     -- 10:       turn around (because we want to run away) and start telling the others about the food
+    biasedMove lnr                                            -- 13: ELSE  do one step of a random walk and go on with what we do
 
 tell_foehome :: StateT Int IO ()
 tell_foehome = do                   -- Total: 1 = 0+1 + 1-1
@@ -72,7 +72,7 @@ run :: StateT Int IO ()
 run = do
     move 0 0
 
-biasedMove :: StateT Int IO ()
+biasedMove :: Int -> StateT Int IO ()
 biasedMove k = do                       -- Total: 16 = 13 + 5-1
     lnr <- get
     random 90 (lnr+1) (lnr+13)                        -- 0:

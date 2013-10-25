@@ -90,16 +90,19 @@ senseAdjMove k1 k2 k3 cond = do                  -- Total: 6
     nextL $ \n -> move k1 k2                     -- 5: THEN move onto COND
 
 -- Check a condition in all adjacent directions, and move to the corresponding place if the condition holds
--- Gets three state parameters (move succes, move fail and condition fail) and the condition
+-- Gets three state parameters (move succes, move fail and condition fail), the condition and the not-condition
 senseAdjMoveAndNot :: Int -> Int -> Int -> Condition -> Condition -> StateT Int IO ()
-senseAdjMove k1 k2 k3 cond = do                  -- Total: 6
+senseAdjMoveAndNot k1 k2 k3 cond notCond = do              -- Total: 9
     lnr <- get
-    nextL $ \n -> sense Ahead (lnr+5) n cond     -- 0: IF   the cell in front of me is COND
-    nextL $ \n -> sense LeftAhead (lnr+3) n cond -- 1: OR   the cell left front of me is COND
-    sense RightAhead (lnr+4) k3 cond             -- 2: OR   the cell left front of me is COND
-    turn Left (lnr+5)                            -- 3:   (for the left case, turn left before continuing to the then)
-    nextL $ \n -> turn Right n                   -- 4:   (for the right case, turn right before continuing to the then)
-    nextL $ \n -> move k1 k2                     -- 5: THEN move onto COND
+    nextL $ \n -> sense Ahead n (n+1) cond           -- 0: IF   the cell in front of me is COND
+    nextL $ \n -> sense Ahead n (lnr+8) notCond      -- 1:      AND NOT notCond
+    nextL $ \n -> sense LeftAhead n (n+1) cond       -- 2: OR   the cell left front of me is COND
+    nextL $ \n -> sense LeftAhead n (lnr+6) notCond  -- 3:      AND NOT notCond
+    nextL $ \n -> sense RightAhead n k3 cond         -- 4: OR   the cell left front of me is COND
+    sense RightAhead k3 (lnr+7) notCond              -- 5:      AND NOT notCond
+    turn Left (lnr+8)                                -- 6:   (for the left case, turn left before continuing to the then)
+    nextL $ \n -> turn Right n                       -- 7:   (for the right case, turn right before continuing to the then)
+    nextL $ \n -> move k1 k2                         -- 8: THEN move onto COND
 
 -- Turn multiple times
 -- Gets the nurmal turn parameters: a turn direction {Left, Right} and the state paramweter
@@ -122,10 +125,12 @@ randomMove k = do         -- Total: 5
 -- Create a decent randomizer in terms of the Flip randomizer
 -- Gets its current line number, the percentage in [0, 100], and the two state parameters
 random :: Float -> Int -> Int -> StateT Int IO ()
-random 33 k1 k2 = rand 3 k1 k2        -- Total: varies
+random 10 k1 k2 = rand 10 k1 k2        -- Total: varies
+random 33 k1 k2 = rand 3 k1 k2
 random 25 k1 k2 = rand 4 k1 k2
 random 67 k1 k2 = rand 3 k2 k1
 random 75 k1 k2 = rand 4 k2 k1
+random 90 k1 k2 = rand 10 k2 k1
 random p k1 k2  = do
     lnr <- get
     rtree lnr p 50 1
