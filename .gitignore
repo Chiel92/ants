@@ -1,5 +1,5 @@
 simulation/Ants
-*.ants
+*.ant
 *.dll
 dist
 cabal-dev
