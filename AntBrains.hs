@@ -42,7 +42,6 @@ program = do
 -- The implementation functions for our strategy
 start :: StateT Int IO ()
 start = do                                       -- Total: 15 = 10+1 + 5-1
-    comment "Start"
     lnr <- get
     senseAdjMove (lnr+6) (lnr+10) (lnr+10) Food  -- 0:  IF    there is food and we moved to it
     nextL $ \n -> pickup n n                     -- 6:  THEN  pickup the food
@@ -51,12 +50,10 @@ start = do                                       -- Total: 15 = 10+1 + 5-1
 
 tell_foehome :: StateT Int IO ()
 tell_foehome = do                   -- Total: 1 = 0+1 + 1-1
-    comment "Tell FoeHome"
     move 0 0                        -- 0: Do nothing useful inparticular
 
 tell_food :: StateT Int IO ()
 tell_food = do                                             -- Total: 13 = 8+1 + 5-1
-    comment "Tell Food"
     lnr <- get
     nextL $ \n -> mark _FOOD n                             -- 0: tell others our mark
     senseAdjMove (lnr+7) (lnr+8) (lnr+8) Home              -- 1: IF   an adjacent cell is my anthill and I moved there
@@ -65,7 +62,6 @@ tell_food = do                                             -- Total: 13 = 8+1 + 
 
 pillage_raid :: StateT Int IO ()
 pillage_raid = do                             -- Total: 1
-    comment "Pillage and Raid - Arrrr"
     move 0 0
 
 rally_troops :: StateT Int IO ()

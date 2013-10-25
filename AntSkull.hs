@@ -16,8 +16,9 @@ instance Compile String where
 
 instance Compile (StateT Int IO ()) where
     compile s = do
+        n <- get
         modify (+1)
-        liftIO $ putStrLn s
+        liftIO $ putStrLn (s ++ "      ;" ++ show n)
 
 instance (Compile r, Show a) => Compile (a -> r) where
     compile s x = compile (s ++ " " ++ show x)
