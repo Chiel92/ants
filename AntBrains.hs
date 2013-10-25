@@ -44,7 +44,7 @@ start :: StateT Int IO ()
 start = do                                       -- Total: 15 = 10+1 + 5-1
     lnr <- get
     senseAdjMove (lnr+6) (lnr+10) (lnr+10) Food  -- 0:  IF    there is food and we moved to it
-    nextL $ \n -> pickup n n                     -- 6:  THEN  pickup the food
+    nextL $ \n -> pickup n (lnr+10)              -- 6:  THEN  pickup the food
     turnAround _TELL_FOOD                        -- 7:        turn around (because we want to run away) and start telling the others about the food
     randomMove lnr                               -- 10: ELSE  do one step of a random walk and go on with what we do
 

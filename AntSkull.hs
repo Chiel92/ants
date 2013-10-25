@@ -89,6 +89,18 @@ senseAdjMove k1 k2 k3 cond = do                  -- Total: 6
     nextL $ \n -> turn Right n                   -- 4:   (for the right case, turn right before continuing to the then)
     nextL $ \n -> move k1 k2                     -- 5: THEN move onto COND
 
+-- Check a condition in all adjacent directions, and move to the corresponding place if the condition holds
+-- Gets three state parameters (move succes, move fail and condition fail) and the condition
+senseAdjMoveAndNot :: Int -> Int -> Int -> Condition -> Condition -> StateT Int IO ()
+senseAdjMove k1 k2 k3 cond = do                  -- Total: 6
+    lnr <- get
+    nextL $ \n -> sense Ahead (lnr+5) n cond     -- 0: IF   the cell in front of me is COND
+    nextL $ \n -> sense LeftAhead (lnr+3) n cond -- 1: OR   the cell left front of me is COND
+    sense RightAhead (lnr+4) k3 cond             -- 2: OR   the cell left front of me is COND
+    turn Left (lnr+5)                            -- 3:   (for the left case, turn left before continuing to the then)
+    nextL $ \n -> turn Right n                   -- 4:   (for the right case, turn right before continuing to the then)
+    nextL $ \n -> move k1 k2                     -- 5: THEN move onto COND
+
 -- Turn multiple times
 -- Gets the nurmal turn parameters: a turn direction {Left, Right} and the state paramweter
 turn2 :: Turn -> Int -> StateT Int IO ()
@@ -105,7 +117,7 @@ randomMove k = do         -- Total: 5
     random 50 (n+2) (n+3) -- n+1
     turn Right (n+4)      -- n+2
     turn Left (n+4)       -- n+3
-    move n k              -- n+4
+    move k n              -- n+4
 
 -- Create a decent randomizer in terms of the Flip randomizer
 -- Gets its current line number, the percentage in [0, 100], and the two state parameters
