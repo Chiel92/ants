@@ -6,10 +6,9 @@ import Control.Monad.State
 
 -- Some function line numbers
 _START        = 0          -- First
-_TELL_FOEHOME = 29         -- #Start
-_TELL_FOOD    = 29+1       -- #Start + #TellFoeHome
+_TELL_FOEHOME = 31         -- #Start
+_TELL_FOOD    = 31+1       -- #Start + #TellFoeHome
 _GET_FOOD     = 0          -- First
-_PILLAGE_RAID = 29+1+13    -- #Start + #TellFoeHome + #TellFood
 
 -- The markers
 _FOEHOME = 0
@@ -35,13 +34,10 @@ program = do
     tell_foehome
     tell_food
 
-    -- Good, now we know the important things, so lets go pillage and raid. Arrrrrr!
-    pillage_raid
-
 
 -- The implementation functions for our strategy
 start :: StateT Int IO ()
-start = do                                                    -- Total: 29 = 13+1 + 16-1
+start = do                                                    -- Total: 31 = 13+1 + 18-1
     lnr <- get
     senseAdjMoveAndNot (lnr+9) (lnr+13) (lnr+13) Food Home    -- 0:  IF    there is food (not on Home) and we moved to it
     nextL $ \n -> pickup n (lnr+13)                           -- 9:  THEN  pickup the food
@@ -53,30 +49,16 @@ tell_foehome = do                   -- Total: 1 = 0+1 + 1-1
     move 0 0                        -- 0: Do nothing useful in particular
 
 tell_food :: StateT Int IO ()
-tell_food = do                                             -- Total: 13 = 8+1 + 5-1
+tell_food = do                                             -- Total: 30 = 29+1 + 1-1
     lnr <- get
-    nextL $ \n -> mark _FOOD n                             -- 0: tell others our mark
-    senseAdjMove (lnr+7) (lnr+8) (lnr+8) Home              -- 1: IF   an adjacent cell is my anthill and I moved there
-    drop _GET_FOOD                                         -- 7: THEN drop the food and return to searching
-    randomMove lnr                                         -- 8: ELSE do one step of the random walk and go on
-
-pillage_raid :: StateT Int IO ()
-pillage_raid = do                             -- Total: 1
-    move 0 0
-
-rally_troops :: StateT Int IO ()
-rally_troops = do
-    move 0 0
+    nextL $ \n -> mark _FOOD n                             -- 0:  tell others our mark
+    senseAdjMove (lnr+7) (lnr+8) (lnr+8) Home              -- 1:  IF   an adjacent cell is my anthill and I moved there
+    nextL $ \n -> drop n                                   -- 7:  THEN drop the food
+    turnAround _GET_FOOD                                   -- 8:       turn around and return searching
+    biasedMove (lnr+26)                                    -- 11: ELSE do one step of the random walk
+    sense Here (lnr+7) lnr Home                            -- 29:      and check if we are accidentally home now (if so, drop and search, of not, try again)
 
 run :: StateT Int IO ()
 run = do
     move 0 0
-
-biasedMove :: Int -> StateT Int IO ()
-biasedMove k = do                       -- Total: 16 = 13 + 5-1
-    lnr <- get
-    random 90 (lnr+1) (lnr+13)                        -- 0:
-    senseAdjMove k (lnr+7) (lnr+7) (Marker 0)         -- 1:
-    senseAdjMove k k k (Marker 1)                     -- 7:
-    randomMove k                                      -- 13:
 

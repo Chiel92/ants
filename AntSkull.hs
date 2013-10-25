@@ -122,6 +122,16 @@ randomMove k = do         -- Total: 5
     turn Left (n+4)       -- n+3
     move k n              -- n+4
 
+-- Do a random move, but with a high chance of following markers (for one step)
+biasedMove :: Int -> StateT Int IO ()
+biasedMove k = do                                     -- Total: 18 = 13+1 + 5-1
+    lnr <- get
+    random 90 (lnr+1) (lnr+13)                        -- 0:
+    senseAdjMove k (lnr+7) (lnr+7) (Marker 0)         -- 1:
+    senseAdjMove k (lnr+13) (lnr+13) (Marker 1)       -- 7:
+    randomMove k                                      -- 13:
+
+
 -- Create a decent randomizer in terms of the Flip randomizer
 -- Gets its current line number, the percentage in [0, 100], and the two state parameters
 random :: Float -> Int -> Int -> StateT Int IO ()
