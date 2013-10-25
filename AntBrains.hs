@@ -59,7 +59,7 @@ tell_food = do                                             -- Total: 13 = 8+1 + 
     comment "Tell Food"
     lnr <- get
     nextL $ \n -> mark _FOOD n                             -- 0: tell others our mark
-    senseAdjMove (lnr+7) lnr (lnr+8) Home                  -- 1: IF   an adjacent cell is my anthill and I moved there
+    senseAdjMove (lnr+7) (lnr+8) (lnr+8) Home              -- 1: IF   an adjacent cell is my anthill and I moved there
     drop _GET_FOOD                                         -- 7: THEN drop the food and return to searching
     randomMove lnr                                         -- 8: ELSE do one step of the random walk and go on
 
