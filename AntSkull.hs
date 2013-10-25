@@ -139,6 +139,6 @@ random p k1 k2  = do
 --
 -- Some functions to help managing line numbers
 --
-curL f = get >>= \n -> f (n+1)    -- @Chiel, are you sure these functions are right this way?
-nextL f = get >>= f
+nextL f = get >>= \n -> f (n+1)    -- @Chiel, are you sure these functions are right this way?
+curL f = get >>= f
 

@@ -41,13 +41,13 @@ program = do
 
 -- The implementation functions for our strategy
 start :: StateT Int IO ()
-start = do                                  -- Total: 15 = 10+1 + 5-1
+start = do                                       -- Total: 15 = 10+1 + 5-1
     comment "Start"
     lnr <- get
-    senseAdjMove (lnr+3) lnr (lnr+6) Food   -- 0:  IF    there is food and we moved to it
-    nextL $ \n -> pickup n n                -- 6:  THEN  pickup the food
-    turnAround _TELL_FOOD                   -- 7:  THEN  turn around (because we want to run away) and start telling the others about the food
-    randomMove lnr                          -- 10: ELSE  do one step of a random walk and go on with what we do
+    senseAdjMove (lnr+6) (lnr+10) (lnr+10) Food  -- 0:  IF    there is food and we moved to it
+    nextL $ \n -> pickup n n                     -- 6:  THEN  pickup the food
+    turnAround _TELL_FOOD                        -- 7:        turn around (because we want to run away) and start telling the others about the food
+    randomMove lnr                               -- 10: ELSE  do one step of a random walk and go on with what we do
 
 tell_foehome :: StateT Int IO ()
 tell_foehome = do                   -- Total: 1 = 0+1 + 1-1
