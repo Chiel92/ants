@@ -2,11 +2,9 @@
 module AntSkull where
 
 import Control.Monad.State
-import Control.Monad.Identity
 import Control.Monad.Writer
 import Data.List (sortBy)
 import Data.Function (on)
-import Data.Map
 import Prelude hiding (Left, Right)
 
 
@@ -14,30 +12,57 @@ import Prelude hiding (Left, Right)
 -- A nice way to print our functions
 --
 class Compile r where
-    compile :: String -> r
+    compile :: String -> Entry -> r
 
-instance Compile String where
-    compile s = s
-
---instance Compile (StateT Int (Writer Program) () ) where
---    compile s = do
---        --n <- get
---        --modify (+1)
---        lift $ writer ((), [(n, s)])
-
-instance Compile (StateT Int IO ()) where
-    compile s = do
-        n <- get
-        modify (+1)
-        liftIO $ putStrLn (s ++ "      ;" ++ show n)
+instance Compile (StateT Int (Writer Program) () ) where
+    compile s n = lift $ writer ((), [(n, s)])
 
 instance (Compile r, Show a) => Compile (a -> r) where
-    compile s x = compile (s ++ " " ++ show x)
+    compile s n x = compile (s ++ " " ++ show x) n
 
 
 type Entry = Int
 type Cont = Int
 type Program = [(Entry, String)]
+
+
+--
+-- Some datatypes to make life more beautiful
+--
+data SenseDir  = Here | Ahead | LeftAhead | RightAhead deriving Show
+data Condition = Friend | Foe | FriendWithFood | FoeWithFood
+               | Food | Rock | Marker Mark | FoeMarker
+               | Home | FoeHome deriving Show
+data Turn      = Left | Right deriving Show
+type Mark      = Int
+
+
+--
+-- The primitive functions
+--
+sense :: Entry -> SenseDir -> Int -> Int -> Condition -> StateT Int (Writer Program) ()
+sense n = compile "Sense" n
+
+mark :: Entry -> Mark -> Int -> StateT Int (Writer Program) ()
+mark n = compile "Mark" n
+
+unmark :: Entry -> Mark -> Int -> StateT Int (Writer Program) ()
+unmark n = compile "Unmark" n
+
+pickup :: Entry -> Int -> Int -> StateT Int (Writer Program) ()
+pickup n = compile "PickUp" n
+
+drop :: Entry -> Int -> StateT Int (Writer Program) ()
+drop n = compile "Drop" n
+
+turn :: Entry -> Turn -> Cont -> StateT Int (Writer Program) ()
+turn n = compile "Turn" n
+
+move :: Entry -> Cont -> Cont -> StateT Int (Writer Program) ()
+move n = compile "Move" n
+
+rand :: Entry -> Int -> Cont -> Cont -> StateT Int (Writer Program) ()
+rand n = compile "Flip" n
 
 
 --shift :: StateT Int (Writer Program) ()
@@ -46,13 +71,15 @@ type Program = [(Entry, String)]
 --    modify (+1)
 --    return n
 
+-- print program to IO
 main = do
     mapM_ (putStrLn . snd) (run program')
     --mapM_ print (run program')
 
+-- generate the program and sort instructions on line number
 run program = sortBy (compare `on` fst) (snd $ runWriter (runStateT program 1))
 
-
+-- an example program
 program = randomMove' 0 0
 program' = biasedMove' 0 0
 
@@ -98,48 +125,6 @@ biasedMove' n k = do
     turn n2 Right k
     randomMove' n3 k
     turn n4 Left k
-
-
---
--- Some datatypes to make life more beautiful
---
-data SenseDir  = Here | Ahead | LeftAhead | RightAhead deriving Show
-data Condition = Friend | Foe | FriendWithFood | FoeWithFood
-               | Food | Rock | Marker Mark | FoeMarker
-               | Home | FoeHome deriving Show
-data Turn      = Left | Right deriving Show
-type Mark      = Int
-
-
---
--- The primitive functions
---
-sense :: SenseDir -> Int -> Int -> Condition -> StateT Int IO ()
-sense = compile "Sense"
-
-mark :: Mark -> Int -> StateT Int IO ()
-mark = compile "Mark"
-
-unmark :: Mark -> Int -> StateT Int IO ()
-unmark = compile "Unmark"
-
-pickup :: Int -> Int -> StateT Int IO ()
-pickup = compile "PickUp"
-
-drop :: Int -> StateT Int IO ()
-drop = compile "Drop"
-
-turn :: Entry -> Turn -> Cont -> StateT Int (Writer Program) ()
-turn n t k = lift $ writer ((), [(n, "Turn " ++ show t ++ " " ++ show k)])
-
-move :: Entry -> Cont -> Cont -> StateT Int (Writer Program) ()
-move n k1 k2 = lift $ writer ((), [(n, "Move " ++ show k1 ++ " " ++ show k2)])
-
-rand :: Entry -> Int -> Cont -> Cont -> StateT Int (Writer Program) ()
-rand n p k1 k2 = lift $ writer ((), [(n, "Flip " ++ show p ++ show k1 ++ " " ++ show k2)])
-
-comment :: String -> StateT Int IO ()
-comment s = liftIO $ putStrLn ("; " ++ s)
 
 
 {-
