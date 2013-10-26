@@ -142,11 +142,11 @@ followTrail _this cond k1 k2 = do
 
     -- If the marker is in front of us and we moved there, go to k1
     senseAdjMove _this k1 _moveAround k2 cond
-    
+
     -- If we bumped into something, move around
     moveAround _moveAround k1 k2
 
--- Follow a trail in front, or fail
+-- Try to pass at the right side
 moveAround :: Entry -> Cont -> Cont -> M ()
 moveAround _this k1 k2 = do
     _moveForward  <- alloc
