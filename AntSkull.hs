@@ -5,7 +5,7 @@ import Control.Monad.State hiding (when)
 import Control.Monad.Writer hiding (when)
 import Data.List (sortBy)
 import Data.Function (on)
-import Prelude hiding (Left, Right)
+import Prelude hiding (Left, Right, (&&), (||))
 
 
 --
@@ -21,7 +21,7 @@ instance (Compile r, Show a) => Compile (a -> r) where
     compile s n x = compile (s ++ " " ++ show x) n
 
 
-type Entry = Int
+type Entry = Int -- Convention: all entry identifiers start with an underscore
 type Cont = Int
 type Program = [(Entry, String)]
 type M = StateT Int (Writer Program)
@@ -118,15 +118,36 @@ when n1 (Or expr1 expr2) k1 k2 = do
 --
 -- Our extension functions
 --
-tryFollowTrail :: Entry -> Mark -> Cont -> Cont -> M ()
-tryFollowTrail n1 m k1 k2 = do
+-- GEEF GLOBALS DOOR ALS PARAMETERS
+
+-- Do a random walk (for one step)
+randomMove :: Entry -> Cont -> M ()
+randomMove _this k = do
     n2 <- alloc
     n3 <- alloc
     n4 <- alloc
     n5 <- alloc
-    return ()
 
-    -- n1 RightAhead m
+    rand _this 2 n5 n2
+    rand n2 2 n3 n4
+    turn n3 Right n5
+    turn n4 Left n5
+    move n5 k _this
+
+
+tryFollowTrail :: Entry -> Mark -> Cont -> Cont -> M ()
+tryFollowTrail _this m k1 k2 = do
+    _turnLeft    <- alloc
+    _checkRight  <- alloc
+    _moveForward <- alloc
+    _moveOnTrail <- alloc
+
+    when _this (If Ahead (Marker m)) _turnLeft _checkRight
+    turn _turnLeft Left _this
+    when _checkRight (If RightAhead (Marker m)) _moveForward k2
+    move _moveForward k1 _moveOnTrail
+
+    turn _moveOnTrail Right _moveForward
 
 -- Do a random walk (for one step)
 -- GEEF GLOBALS DOOR ALS PARAMETERS
