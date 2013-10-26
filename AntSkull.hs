@@ -98,6 +98,9 @@ rand n = compile "Flip" n
 --
 data Expr = If SenseDir Condition | Not Expr | And Expr Expr | Or Expr Expr
 
+(&&) expr1 expr2 = And expr1 expr2
+(||) expr1 expr2 = Or expr1 expr2
+
 when :: Entry -> Expr -> Cont -> Cont -> M ()
 when n1 (If dir cond) k1 k2 = sense n1 dir k1 k2 cond
 when n1 (Not expr) k1 k2 = when n1 expr k2 k1
@@ -153,18 +156,10 @@ randomMove n1 k = do
     turn n4 Left n5
     move n5 k n1
 
-{-
---
--- Our extension functions
---
 -- Check a condition in all adjacent directions
 -- Gets the two state parameters and the condition
-senseAdj :: Int -> Int -> Condition -> StateT Int IO ()
-senseAdj k1 k2 cond = do                         -- Total: 3
-    lnr <- get
-    sense Ahead k1 (lnr+1) cond
-    sense LeftAhead k1 (lnr+2) cond
-    sense RightAhead k1 k2 cond
+senseAdj :: Entry -> Cont -> Cont -> Condition -> StateT Int IO ()
+senseAdj n1 k1 k2 cond = when n1 (If Ahead cond || If RightAhead cond || If LeftAhead cond) k1 k2
 
 -- Check a condition in all adjacent directions, and move to the corresponding place if the condition holds
 -- Gets three state parameters (move succes, move fail and condition fail) and the condition
@@ -251,6 +246,4 @@ random p k1 k2  = do
         -- Get the probability corresponding to the depth of the tree
         getP :: Int -> Float
         getP d = 100 / (2 ** (fromIntegral d))
-
--}
 
