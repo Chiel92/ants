@@ -36,7 +36,7 @@ program _Search = do
     getFood _GetFood _ReturnFood
     returnFood _ReturnFood _StoreFood
     storeFood _StoreFood _GetFood _Defend _ReturnFood
-    -- defend _Defend
+    move _Defend 0 0
 
 
 -- The implementation functions for our strategy

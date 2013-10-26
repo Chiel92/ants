@@ -139,28 +139,30 @@ tryFollowTrail _this c k = do
 followTrail :: Entry -> Condition -> Cont -> Cont -> M ()
 followTrail _this c k1 k2 = do
     _turnLeft        <- alloc
-    _checkRight      <- alloc
-    _checkRightAgain <- alloc
     _turnRight       <- alloc
+    _checkRight      <- alloc
+    _checkLeft       <- alloc
     _moveForward     <- alloc
-    _turnToTrail     <- alloc
-    _moveOnTrail     <- alloc
-    _turnBackLeft    <- alloc
+    _moveAround      <- alloc
 
     -- Turn left till no marker is ahead, then _checkRight
-    when _this (If Ahead c) _turnLeft _checkRight
+    when _this (If Ahead c) _moveForward _checkRight
     turn _turnLeft Left _this
 
-    -- Try follow a trail (and turn right, if needed), else _turnToTrail
-    when _checkRight (If RightAhead c) _moveForward _turnRight
-    turn _turnRight Right _checkRightAgain
-    when _checkRightAgain (If RightAhead c) _moveForward k2
-    move _moveForward k1 _turnToTrail
+    -- Check for a trail right ahead (and turn right, if found)
+    when _checkRight (If RightAhead c) _turnRight _checkLeft
+    turn _turnRight Right _moveForward
+
+    -- Check for a trail left ahead (and turn left, if found)
+    when _checkLeft (If LeftAhead c) _turnLeft k2
+    turn _turnLeft Left _moveForward
+
+    move _moveForward k1 _moveAround
 
     -- Move on the trail if we can't go forward
-    turn _turnToTrail Right _moveOnTrail
-    move _moveOnTrail _turnBackLeft _turnRight
-    turn _turnBackLeft Left k1
+
+-- Follow a trail in front, or fail
+moveAround _this = undefined
 
 
 -- Check a condition in all adjacent directions
