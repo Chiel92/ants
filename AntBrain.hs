@@ -40,7 +40,7 @@ program _Search = do
 
 
 -- The implementation functions for our strategy
-search :: Entry -> Entry -> Entry -> M ()
+search :: Entry -> Cont -> Cont -> M ()
 search _this _TellFood _TellFoeHome = do
     _turnAroundFoe  <- alloc
     _checkFood      <- alloc
@@ -66,7 +66,7 @@ tellFoehome _this = do
     move _this 0 0
 
 
-tellFood :: Entry -> Entry -> Entry -> Entry -> M ()
+tellFood :: Entry -> Cont -> Cont -> Cont -> M ()
 tellFood _this _GetFood _ReturnFood _StoreFood = do
     _checkExistingMarker <- alloc
     _checkHome           <- alloc
@@ -86,7 +86,7 @@ tellFood _this _GetFood _ReturnFood _StoreFood = do
     randomMove _randomWalk _this
 
 
-getFood :: Entry -> Entry -> M ()
+getFood :: Entry -> Cont -> M ()
 getFood _this _ReturnFood = do
     _pickUp         <- alloc
     _turnAround     <- alloc
@@ -101,7 +101,7 @@ getFood _this _ReturnFood = do
     tryFollowTrail _tryFollowTrail (Marker _FOOD) _this
 
 
-returnFood :: Entry -> Entry -> M ()
+returnFood :: Entry -> Cont -> M ()
 returnFood _this _StoreFood = do
     _tryFollowTrail <- alloc
 
@@ -110,4 +110,22 @@ returnFood _this _StoreFood = do
 
     -- If we didn't find home, follow the trail
     tryFollowTrail _tryFollowTrail (Marker _FOOD) _this
+
+
+storeFood :: Entry -> Cont -> Cont -> Cont -> M ()
+storeFood _this _GetFood _Defend _ReturnFood= do
+    _dropFoodRightAhead <- alloc
+    _dropFoodAhead      <- alloc
+    _dropFood           <- alloc
+    _moveAround         <- alloc
+    _followHome         <- alloc
+
+    -- COMMENT
+    when _this (If RightAhead Food) _dropFoodRightAhead _followHome
+    turn _dropFoodRightAhead Right _dropFoodAhead
+    move _dropFoodAhead _dropFood _followHome
+    drop _dropFood _GetFood
+
+    -- COMMENT
+    followTrail _followHome Home _this _ReturnFood
 
