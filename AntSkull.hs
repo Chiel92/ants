@@ -163,23 +163,6 @@ followTrail _this c k1 k2 = do
     turn _turnBackLeft Left k1
 
 
--- Store food
-storeFood :: Entry -> Cont -> Cont -> Cont -> M ()
-storeFood _this _GetFood _Defend _ReturnFood= do
-    _dropFoodRightAhead <- alloc
-    _dropFoodAhead      <- alloc
-    _dropFood           <- alloc
-    _moveAround         <- alloc
-    _followHome         <- alloc
-
-    when _this (If RightAhead Food) _dropFoodRightAhead _followHome
-    turn _dropFoodRightAhead Right _dropFoodAhead
-    move _dropFoodAhead _dropFood _followHome
-    drop _dropFood _GetFood
-
-    followTrail _followHome Home _this _ReturnFood
-
-
 -- Check a condition in all adjacent directions
 -- Gets the two state parameters and the condition
 senseAdj :: Entry -> Cont -> Cont -> Condition -> M ()
