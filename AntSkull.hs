@@ -129,40 +129,37 @@ randomMove _this k = do
 
 -- Try follow a trail in front, else do a random move
 tryFollowTrail :: Entry -> Condition -> Cont -> M ()
-tryFollowTrail _this c k = do
+tryFollowTrail _this cond k = do
     _randomMove <- alloc
 
-    followTrail _this c k _randomMove
+    followTrail _this cond k _randomMove
     randomMove _randomMove k
 
 -- Follow a trail in front, or fail
 followTrail :: Entry -> Condition -> Cont -> Cont -> M ()
-followTrail _this c k1 k2 = do
-    _turnLeft        <- alloc
-    _turnRight       <- alloc
-    _checkRight      <- alloc
-    _checkLeft       <- alloc
-    _moveForward     <- alloc
-    _moveAround      <- alloc
+followTrail _this cond k1 k2 = do
+    _moveAround <- alloc
 
-    -- Turn left till no marker is ahead, then _checkRight
-    when _this (If Ahead c) _moveForward _checkRight
-    turn _turnLeft Left _this
-
-    -- Check for a trail right ahead (and turn right, if found)
-    when _checkRight (If RightAhead c) _turnRight _checkLeft
-    turn _turnRight Right _moveForward
-
-    -- Check for a trail left ahead (and turn left, if found)
-    when _checkLeft (If LeftAhead c) _turnLeft k2
-    turn _turnLeft Left _moveForward
-
-    move _moveForward k1 _moveAround
-
-    -- Move on the trail if we can't go forward
+    -- If the marker is in front of us and we moved there, go to k1
+    senseAdjMove _this k1 _moveAround k2 cond
+    
+    -- If we bumped into something, move around
+    moveAround _moveAround k1 k2
 
 -- Follow a trail in front, or fail
-moveAround _this = undefined
+moveAround :: Entry -> Cont -> Cont -> M ()
+moveAround _this k1 k2 = do
+    _moveForward  <- alloc
+    _turnBack     <- alloc
+    _turnBackFail <- alloc
+
+    -- Turn right, move forward and turn back left
+    turn _this Right _moveForward
+    move _moveForward _turnBack k2
+    turn _turnBack Left k1
+
+    -- If the move failed, try to pass at the left side (TODO)
+    turn _turnBackFail Left k2
 
 
 -- Check a condition in all adjacent directions

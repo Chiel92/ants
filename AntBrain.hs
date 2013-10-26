@@ -26,7 +26,7 @@ program _Search = do
     _Defend      <- alloc
 
     -- We start by searching anything, food, enemies, whatever.               CURRENTLY FOOD ONLY
-    search _Search _TellFood _TellFoeHome
+    search _Search _TellFoeHome _TellFood
 
     -- After we found anything, lets go tell the others what we found
     tellFoehome _TellFoeHome
@@ -41,7 +41,7 @@ program _Search = do
 
 -- The implementation functions for our strategy
 search :: Entry -> Cont -> Cont -> M ()
-search _this _TellFood _TellFoeHome = do
+search _this _TellFoeHome _TellFood = do
     _checkFoe       <- alloc
     _turnAroundFoe  <- alloc
     _checkFood      <- alloc
@@ -74,7 +74,6 @@ tellFood :: Entry -> Cont -> Cont -> Cont -> M ()
 tellFood _this _GetFood _ReturnFood _StoreFood = do
     _mark        <- alloc
     _checkHome   <- alloc
-    _dropFood    <- alloc
     _followTrail <- alloc
 
     -- Check if there already is a food marker (if so, _ReturnFood)
@@ -121,7 +120,6 @@ storeFood _this _GetFood _Defend _ReturnFood= do
     _dropFoodRightAhead <- alloc
     _dropFoodAhead      <- alloc
     _dropFood           <- alloc
-    _moveAround         <- alloc
     _followHome         <- alloc
 
     -- COMMENT
