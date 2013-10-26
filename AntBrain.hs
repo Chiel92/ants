@@ -86,7 +86,7 @@ tellFood _this _GetFood _ReturnFood _CheckDefend = do
     -- If we didn't find another marker, mark the current spot
     mark _mark _FOOD _checkHome
 
-    -- Check if we are home, if so, _StoreFood
+    -- Check if we are home and move there, if so, drop the food and _CheckDefend
     senseAdjMove _checkHome _dropFood _followTrail _followTrail Home
     drop _dropFood _CheckDefend
 
@@ -113,12 +113,14 @@ getFood _this _ReturnFood = do
 returnFood :: Entry -> Cont -> M ()
 returnFood _this _StoreFood = do
     _tryFollowTrail <- alloc
+    _checkAnyway    <- alloc
 
     -- Check if we found home, if so _StoreFood
-    senseAdj _this _StoreFood _tryFollowTrail Home
+    senseAdjMove _this _StoreFood _tryFollowTrail _tryFollowTrail Home
 
     -- If we didn't find home, follow the trail
     tryFollowTrail _tryFollowTrail (Marker _FOOD) _this
+    sense _checkAnyway Here _StoreFood _this Home
 
 
 storeFood :: Entry -> Cont -> Cont -> Cont -> M ()
