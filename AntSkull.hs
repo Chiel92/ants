@@ -26,6 +26,33 @@ type Cont = Int
 type Program = [(Entry, String)]
 type M = StateT Int (Writer Program)
 
+-- Allocate an entrypoint for a function
+alloc :: M Int
+alloc = do
+    n <- get
+    modify (+1)
+    return n
+
+
+--
+-- IO functionality
+--
+main = do
+    debug $ program 0
+    --mapM_ print (run program)
+
+-- Generate the program and sort instructions on line number
+run :: M () -> Program
+run prog = sortBy (compare `on` fst) (snd $ runWriter (runStateT (alloc >> prog) 0))
+
+-- Print function to IO
+debug :: M () -> IO ()
+debug prog = mapM_ (putStrLn . snd) (run prog)
+
+-- An example program
+program :: Entry -> M ()
+program n1 = randomMove n1 0
+
 
 --
 -- Some datatypes to make life more beautiful
@@ -37,23 +64,6 @@ data Condition = Friend | Foe | FriendWithFood | FoeWithFood
 data Turn      = Left | Right deriving Show
 type Mark      = Int
 
-
---
--- Advanced sensing system
---
-data Expr = If SenseDir Condition | Not Expr | And Expr Expr | Or Expr Expr
-
-when :: Entry -> Expr -> Cont -> Cont -> M ()
-when n1 (If dir cond) k1 k2 = sense n1 dir k1 k2 cond
-when n1 (Not expr) k1 k2 = when n1 expr k2 k1
-when n1 (And expr1 expr2) k1 k2 = do
-    n2 <- alloc
-    when n1 expr1 n2 k2
-    when n2 expr2 k1 k2
-when n1 (Or expr1 expr2) k1 k2 = do
-    n2 <- alloc
-    when n1 expr1 k1 n2
-    when n2 expr2 k1 k2
 
 --
 -- The primitive functions
@@ -83,24 +93,27 @@ rand :: Entry -> Int -> Cont -> Cont -> M ()
 rand n = compile "Flip" n
 
 
-alloc :: M Int
-alloc = do
-    n <- get
-    modify (+1)
-    return n
+--
+-- Advanced sensing system
+--
+data Expr = If SenseDir Condition | Not Expr | And Expr Expr | Or Expr Expr
 
--- print program to IO
-main = do
-    mapM_ (putStrLn . snd) (run program)
-    mapM_ print (run program)
+when :: Entry -> Expr -> Cont -> Cont -> M ()
+when n1 (If dir cond) k1 k2 = sense n1 dir k1 k2 cond
+when n1 (Not expr) k1 k2 = when n1 expr k2 k1
+when n1 (And expr1 expr2) k1 k2 = do
+    n2 <- alloc
+    when n1 expr1 n2 k2
+    when n2 expr2 k1 k2
+when n1 (Or expr1 expr2) k1 k2 = do
+    n2 <- alloc
+    when n1 expr1 k1 n2
+    when n2 expr2 k1 k2
 
--- generate the program and sort instructions on line number
-run program = sortBy (compare `on` fst) (snd $ runWriter (runStateT program 1))
 
--- an example program
-program = randomMove 0 0
-
-
+--
+-- Our extension functions
+--
 tryFollowTrail :: Entry -> Mark -> Cont -> Cont -> M ()
 tryFollowTrail n1 m k1 k2 = do
     n2 <- alloc
@@ -109,7 +122,7 @@ tryFollowTrail n1 m k1 k2 = do
     n5 <- alloc
     return ()
 
-    -- n1 RightAhead m 
+    -- n1 RightAhead m
 
 {-
 -- Check a condition in all adjacent directions, and move to the corresponding place if the condition holds
