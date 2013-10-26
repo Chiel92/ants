@@ -148,7 +148,7 @@ followTrail _this cond k1 k2 = do
     -- If we keep bumping into something, move around
     moveAround _moveAround k1 k2
 
--- Follow a trail in front, or fail
+-- Try to pass at the right side
 moveAround :: Entry -> Cont -> Cont -> M ()
 moveAround _this k1 k2 = do
     _moveForwardRight  <- alloc
@@ -167,7 +167,7 @@ moveAround _this k1 k2 = do
     turn2 _turnLeft Left _moveForwardLeft
     move _moveForwardLeft _turnBackLeft _moveLeftFailed
     turn2 _turnBackLeft Right k1
-    
+
     -- If that failed as well, then turn back and fail for real
     turn1 _moveLeftFailed Right k2
 
@@ -264,11 +264,12 @@ turnAround _this k = do
 -- Create a decent randomizer in terms of the Flip randomizer
 -- Gets its current line number, the percentage in [0, 100], and the two state parameters
 random :: Entry -> Float -> Cont -> Cont -> M ()
+random _this 5 k1 k2 = rand _this 20 k1 k2
 random _this 10 k1 k2 = rand _this 10 k1 k2
 random _this 33 k1 k2 = rand _this 3 k1 k2
 random _this 25 k1 k2 = rand _this 4 k1 k2
+random _this 50 k1 k2 = rand _this 2 k1 k2
 random _this 67 k1 k2 = rand _this 3 k2 k1
 random _this 75 k1 k2 = rand _this 4 k2 k1
 random _this 90 k1 k2 = rand _this 10 k2 k1
-random _this 50 k1 k2 = rand _this 2 k1 k2
 
