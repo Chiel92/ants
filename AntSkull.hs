@@ -114,15 +114,28 @@ when n1 (Or expr1 expr2) k1 k2 = do
 --
 -- Our extension functions
 --
-tryFollowTrail :: Entry -> Mark -> Cont -> Cont -> M ()
-tryFollowTrail n1 m k1 k2 = do
+-- GEEF GLOBALS DOOR ALS PARAMETERS
+
+-- Do a random walk (for one step)
+randomMove :: Entry -> Cont -> M ()
+randomMove n1 k = do
     n2 <- alloc
     n3 <- alloc
     n4 <- alloc
     n5 <- alloc
-    return ()
 
-    -- n1 RightAhead m
+    rand n1 2 n5 n2
+    rand n2 2 n3 n4
+    turn n3 Right n5
+    turn n4 Left n5
+    move n5 k n1
+
+tryFollowTrail :: Entry -> Mark -> Cont -> Cont -> M ()
+tryFollowTrail n1 m k1 k2 = do
+    moveForward <- alloc
+
+    when n1 (If RightAhead && Not (If LeftAhead)) moveForward k2
+    move moveForward k1 k2
 
 {-
 -- Check a condition in all adjacent directions, and move to the corresponding place if the condition holds
@@ -137,21 +150,6 @@ senseAdjMove n k1 k2 k3 cond = do                  -- Total: 6
     nextL $ \n -> turn Right n                   -- 4:   (for the right case, turn right before continuing to the then)
     nextL $ \n -> move k1 k2                     -- 5: THEN move onto COND
 -}
-
--- Do a random walk (for one step)
--- GEEF GLOBALS DOOR ALS PARAMETERS
-randomMove :: Entry -> Cont -> M ()
-randomMove n1 k = do
-    n2 <- alloc
-    n3 <- alloc
-    n4 <- alloc
-    n5 <- alloc
-
-    rand n1 2 n5 n2
-    rand n2 2 n3 n4
-    turn n3 Right n5
-    turn n4 Left n5
-    move n5 k n1
 
 {-
 --
