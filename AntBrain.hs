@@ -23,6 +23,7 @@ program _Search = do
     _GetFood     <- alloc
     _ReturnFood  <- alloc
     _StoreFood   <- alloc
+    _CheckDefend <- alloc
     _Defend      <- alloc
 
     -- We start by searching anything, food, enemies, whatever.               CURRENTLY FOOD ONLY
@@ -30,12 +31,13 @@ program _Search = do
 
     -- After we found anything, lets go tell the others what we found
     tellFoehome _TellFoeHome
-    tellFood _TellFood _GetFood _ReturnFood _StoreFood
+    tellFood _TellFood _GetFood _ReturnFood _CheckDefend
 
     -- Now either continue to set a trap, or to get food
     getFood _GetFood _ReturnFood
     returnFood _ReturnFood _StoreFood
     storeFood _StoreFood _GetFood _Defend _ReturnFood
+    checkDefend _CheckDefend _Defend _GetFood
     defend _Defend
 
 
@@ -56,7 +58,7 @@ search _this _TellFoeHome _TellFood = do
     senseAdj _checkFoe _turnAroundFoe _checkFood FoeHome
     turnAround _turnAroundFoe _TellFoeHome
 
-    -- If we see Food (not on our Home), pick it up and TELL_FOOD
+    -- If we see Food (not on our Home), pick it up and _TellFood
     senseAdjMoveAndNot _checkFood _pickUp _randomWalk _randomWalk Food Home
     pickup _pickUp _turnAroundFood _randomWalk
     turnAround _turnAroundFood _TellFood
@@ -71,10 +73,12 @@ tellFoehome _this = do
 
 
 tellFood :: Entry -> Cont -> Cont -> Cont -> M ()
-tellFood _this _GetFood _ReturnFood _StoreFood = do
+tellFood _this _GetFood _ReturnFood _CheckDefend = do
     _mark        <- alloc
     _checkHome   <- alloc
+    _dropFood    <- alloc
     _followTrail <- alloc
+    _checkAnyway <- alloc
 
     -- Check if there already is a food marker (if so, _ReturnFood)
     senseAdj _this _ReturnFood _mark (Marker _FOOD)
@@ -83,10 +87,12 @@ tellFood _this _GetFood _ReturnFood _StoreFood = do
     mark _mark _FOOD _checkHome
 
     -- Check if we are home, if so, _StoreFood
-    senseAdj _checkHome _StoreFood _followTrail Home
+    senseAdjMove _checkHome _dropFood _followTrail _followTrail Home
+    drop _dropFood _CheckDefend
 
     -- If we did not find home or another food marker, return to home along our previous path
-    tryFollowTrail _followTrail (Marker _PATH) _this
+    tryFollowTrail _followTrail (Marker _PATH) _checkAnyway
+    sense _checkAnyway Here _dropFood _this Home
 
 
 getFood :: Entry -> Cont -> M ()
@@ -160,7 +166,39 @@ followHomeBorder _this k1 k2 = do
     turn _turnBackLeft Left k1
 
 
+checkDefend :: Entry -> Cont -> Cont -> M ()
+checkDefend _this _Defend _GetFood =  do
+    _or2                  <- alloc
+    _or3                  <- alloc
+    _turnOr4              <- alloc
+    _or4                  <- alloc
+    _turnOr5              <- alloc
+    _or5                  <- alloc
+    _turnRightMoveForward <- alloc
+    _turnLeftMoveForward  <- alloc
+    _moveForward          <- alloc
+    _turnAroundGetFood    <- alloc
+
+    -- We are with our back to the opening -- check if there is one spot in the defence that needs reinforcement
+    when _this (notIf Ahead Friend) _moveForward _or2
+    when _or2 (notIf RightAhead Friend) _turnRightMoveForward _or3
+    when _or3 (notIf LeftAhead Friend) _turnLeftMoveForward _turnOr4
+    turn _turnOr4 Right _or4
+    when _or4 (notIf RightAhead Friend) _turnRightMoveForward _turnOr5
+    turn2 _turnOr5 Left _or5
+    when _or5 (notIf LeftAhead Friend) _turnLeftMoveForward _turnAroundGetFood
+
+    -- Reinforce the spot
+    turn _turnRightMoveForward Right _moveForward
+    turn _turnLeftMoveForward Left _moveForward
+    move _moveForward _Defend _moveForward        -- POSSIBLE DEADLOCK (fix: also try moving backwards in the opening, or take another spot)
+
+    -- If everything is defended, turn around and _GetFood
+    turnAround _turnAroundGetFood _GetFood
+
+
 defend :: Entry -> M ()
 defend _this = do
-    move _this 0 0
+    -- Infinite loop
+    turn _this Right _this
 
