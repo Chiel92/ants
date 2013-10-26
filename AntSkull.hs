@@ -5,7 +5,7 @@ import Control.Monad.State hiding (when)
 import Control.Monad.Writer hiding (when)
 import Data.List (sortBy)
 import Data.Function (on)
-import Prelude hiding (Left, Right)
+import Prelude hiding (Left, Right, (&&), (||))
 
 
 --
@@ -98,6 +98,9 @@ rand n = compile "Flip" n
 --
 data Expr = If SenseDir Condition | Not Expr | And Expr Expr | Or Expr Expr
 
+(&&) expr1 expr2 = And expr1 expr2
+(||) expr1 expr2 = Or expr1 expr2
+
 when :: Entry -> Expr -> Cont -> Cont -> M ()
 when n1 (If dir cond) k1 k2 = sense n1 dir k1 k2 cond
 when n1 (Not expr) k1 k2 = when n1 expr k2 k1
@@ -134,7 +137,7 @@ tryFollowTrail :: Entry -> Mark -> Cont -> Cont -> M ()
 tryFollowTrail n1 m k1 k2 = do
     moveForward <- alloc
 
-    when n1 (If RightAhead && Not (If LeftAhead)) moveForward k2
+    when n1 (If RightAhead (Marker m) && Not (If LeftAhead (Marker m))) moveForward k2
     move moveForward k1 k2
 
 {-
@@ -149,20 +152,12 @@ senseAdjMove n k1 k2 k3 cond = do                  -- Total: 6
     turn Left (lnr+5)                            -- 3:   (for the left case, turn left before continuing to the then)
     nextL $ \n -> turn Right n                   -- 4:   (for the right case, turn right before continuing to the then)
     nextL $ \n -> move k1 k2                     -- 5: THEN move onto COND
--}
 
-{-
---
--- Our extension functions
---
+
 -- Check a condition in all adjacent directions
 -- Gets the two state parameters and the condition
-senseAdj :: Int -> Int -> Condition -> StateT Int IO ()
-senseAdj k1 k2 cond = do                         -- Total: 3
-    lnr <- get
-    sense Ahead k1 (lnr+1) cond
-    sense LeftAhead k1 (lnr+2) cond
-    sense RightAhead k1 k2 cond
+senseAdj :: Entry -> Cont -> Cont -> Condition -> StateT Int IO ()
+senseAdj n1 k1 k2 cond = when n1 (If Ahead cond || If RightAhead cond || If LeftAhead cond) k1 k2
 
 -- Check a condition in all adjacent directions, and move to the corresponding place if the condition holds
 -- Gets three state parameters (move succes, move fail and condition fail) and the condition
@@ -251,4 +246,3 @@ random p k1 k2  = do
         getP d = 100 / (2 ** (fromIntegral d))
 
 -}
-
