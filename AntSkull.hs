@@ -21,7 +21,7 @@ instance (Compile r, Show a) => Compile (a -> r) where
     compile s n x = compile (s ++ " " ++ show x) n
 
 
-type Entry = Int
+type Entry = Int -- Convention: all entry identifiers start with an underscore
 type Cont = Int
 type Program = [(Entry, String)]
 type M = StateT Int (Writer Program)
@@ -121,24 +121,32 @@ when n1 (Or expr1 expr2) k1 k2 = do
 
 -- Do a random walk (for one step)
 randomMove :: Entry -> Cont -> M ()
-randomMove n1 k = do
+randomMove _this k = do
     n2 <- alloc
     n3 <- alloc
     n4 <- alloc
     n5 <- alloc
 
-    rand n1 2 n5 n2
+    rand _this 2 n5 n2
     rand n2 2 n3 n4
     turn n3 Right n5
     turn n4 Left n5
-    move n5 k n1
+    move n5 k _this
+
 
 tryFollowTrail :: Entry -> Mark -> Cont -> Cont -> M ()
-tryFollowTrail n1 m k1 k2 = do
-    moveForward <- alloc
+tryFollowTrail _this m k1 k2 = do
+    _turnLeft    <- alloc
+    _checkRight  <- alloc
+    _moveForward <- alloc
+    _moveOnTrail <- alloc
 
-    when n1 (If RightAhead (Marker m) && Not (If LeftAhead (Marker m))) moveForward k2
-    move moveForward k1 k2
+    when _this (If Ahead (Marker m)) _turnLeft _checkRight
+    turn _turnLeft Left _this
+    when _checkRight (If RightAhead (Marker m)) _moveForward k2
+    move _moveForward k1 _moveOnTrail
+
+    turn _moveOnTrail Right _moveForward
 
 {-
 -- Check a condition in all adjacent directions, and move to the corresponding place if the condition holds
