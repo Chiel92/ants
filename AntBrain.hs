@@ -127,14 +127,16 @@ storeFood :: Entry -> Cont -> Cont -> Cont -> M ()
 storeFood _this _GetFood _CheckDefend _ReturnFood = do
     _dropFood           <- alloc
     _followHomeBorder   <- alloc
+    _ifBorderRandomDrop <- alloc
     _randomDrop         <- alloc
 
     -- COMMENT
-    senseAdjMove _this _dropFood _followHomeBorder _randomDrop Food
+    senseAdjMove _this _dropFood _followHomeBorder _ifBorderRandomDrop Food
 
     drop _dropFood _CheckDefend
 
     -- With a small chance, drop food anyway
+    when _ifBorderRandomDrop (notIf LeftAhead Home && If Here Home) _randomDrop _followHomeBorder
     random _randomDrop 5 _dropFood _followHomeBorder
 
     -- COMMENT
