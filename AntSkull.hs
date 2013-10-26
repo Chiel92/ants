@@ -2,6 +2,9 @@
 module AntSkull where
 
 import Control.Monad.State
+import Control.Monad.Writer
+import Data.List (sortBy)
+import Data.Function (on)
 import Prelude hiding (Left, Right)
 
 
@@ -9,19 +12,20 @@ import Prelude hiding (Left, Right)
 -- A nice way to print our functions
 --
 class Compile r where
-    compile :: String -> r
+    compile :: String -> Entry -> r
 
-instance Compile String where
-    compile s = s
-
-instance Compile (StateT Int IO ()) where
-    compile s = do
-        n <- get
-        modify (+1)
-        liftIO $ putStrLn (s ++ "      ;" ++ show n)
+instance Compile (M () ) where
+    compile s n = lift $ writer ((), [(n, s)])
 
 instance (Compile r, Show a) => Compile (a -> r) where
-    compile s x = compile (s ++ " " ++ show x)
+    compile s n x = compile (s ++ " " ++ show x) n
+
+
+type Entry = Int
+type Cont = Int
+type Program = [(Entry, String)]
+type M = StateT Int (Writer Program)
+
 
 --
 -- Some datatypes to make life more beautiful
@@ -37,41 +41,83 @@ type Mark      = Int
 --
 -- The primitive functions
 --
-sense :: SenseDir -> Int -> Int -> Condition -> StateT Int IO ()
-sense = compile "Sense"
+sense :: Entry -> SenseDir -> Int -> Int -> Condition -> M ()
+sense n = compile "Sense" n
 
-mark :: Mark -> Int -> StateT Int IO ()
-mark = compile "Mark"
+mark :: Entry -> Mark -> Int -> M ()
+mark n = compile "Mark" n
 
-unmark :: Mark -> Int -> StateT Int IO ()
-unmark = compile "Unmark"
+unmark :: Entry -> Mark -> Int -> M ()
+unmark n = compile "Unmark" n
 
-pickup :: Int -> Int -> StateT Int IO ()
-pickup = compile "PickUp"
+pickup :: Entry -> Int -> Int -> M ()
+pickup n = compile "PickUp" n
 
-drop :: Int -> StateT Int IO ()
-drop = compile "Drop"
+drop :: Entry -> Int -> M ()
+drop n = compile "Drop" n
 
-turn :: Turn -> Int -> StateT Int IO ()
-turn = compile "Turn"
+turn :: Entry -> Turn -> Cont -> M ()
+turn n = compile "Turn" n
 
-move :: Int -> Int -> StateT Int IO ()
-move = compile "Move"
+move :: Entry -> Cont -> Cont -> M ()
+move n = compile "Move" n
 
-rand :: Int -> Int -> Int -> StateT Int IO ()
-rand = compile "Flip"
-
-comment :: String -> StateT Int IO ()
-comment s = liftIO $ putStrLn ("; " ++ s)
+rand :: Entry -> Int -> Cont -> Cont -> M ()
+rand n = compile "Flip" n
 
 
+alloc :: M Int
+alloc = do
+    n <- get
+    modify (+1)
+    return n
+
+-- print program to IO
+main = do
+    mapM_ (putStrLn . snd) (run program)
+    mapM_ print (run program)
+
+-- generate the program and sort instructions on line number
+run program = sortBy (compare `on` fst) (snd $ runWriter (runStateT program 1))
+
+-- an example program
+program = randomMove 0 0
+
+
+
+{-
+-- Check a condition in all adjacent directions, and move to the corresponding place if the condition holds
+-- Gets three state parameters (move succes, move fail and condition fail) and the condition
+senseAdjMove :: Entry -> Int -> Int -> Int -> Condition -> StateT Int IO ()
+senseAdjMove n k1 k2 k3 cond = do                  -- Total: 6
+    lnr <- get
+    nextL $ \n -> sense Ahead (lnr+5) n cond     -- 0: IF   the cell in front of me is COND
+    nextL $ \n -> sense LeftAhead (lnr+3) n cond -- 1: OR   the cell left front of me is COND
+    sense RightAhead (lnr+4) k3 cond             -- 2: OR   the cell left front of me is COND
+    turn Left (lnr+5)                            -- 3:   (for the left case, turn left before continuing to the then)
+    nextL $ \n -> turn Right n                   -- 4:   (for the right case, turn right before continuing to the then)
+    nextL $ \n -> move k1 k2                     -- 5: THEN move onto COND
+-}
+
+-- Do a random walk (for one step)
+-- GEEF GLOBALS DOOR ALS PARAMETERS
+randomMove :: Entry -> Cont -> M ()
+randomMove n1 k = do
+    n2 <- alloc
+    n3 <- alloc
+    n4 <- alloc
+    n5 <- alloc
+
+    rand n1 2 n5 n2
+    rand n2 2 n3 n4
+    turn n3 Right n5
+    turn n4 Left n5
+    move n5 k n1
+
+{-
 --
 -- Our extension functions
 --
--- Check (NOT condition)
-senseNot :: SenseDir -> Int -> Int -> Condition -> StateT Int IO ()
-senseNot dir k1 k2 cond = sense dir k2 k1 cond
-
 -- Check a condition in all adjacent directions
 -- Gets the two state parameters and the condition
 senseAdj :: Int -> Int -> Condition -> StateT Int IO ()
@@ -96,17 +142,17 @@ senseAdjMove k1 k2 k3 cond = do                  -- Total: 6
 -- Check a condition in all adjacent directions, and move to the corresponding place if the condition holds
 -- Gets three state parameters (move succes, move fail and condition fail), the condition and the not-condition
 senseAdjMoveAndNot :: Int -> Int -> Int -> Condition -> Condition -> StateT Int IO ()
-senseAdjMoveAndNot k1 k2 k3 cond notCond = do            -- Total: 9
+senseAdjMoveAndNot k1 k2 k3 cond notCond = do              -- Total: 9
     lnr <- get
-    nextL $ \n -> sense Ahead n (n+1) cond               -- 0: IF   the cell in front of me is COND
-    nextL $ \n -> senseNot Ahead (lnr+8) n notCond       -- 1:      AND NOT notCond
-    nextL $ \n -> sense LeftAhead n (n+1) cond           -- 2: OR   the cell left front of me is COND
-    nextL $ \n -> senseNot LeftAhead (lnr+6) n notCond   -- 3:      AND NOT notCond
-    nextL $ \n -> sense RightAhead n k3 cond             -- 4: OR   the cell left front of me is COND
-    senseNot RightAhead (lnr+7) k3 notCond               -- 5:      AND NOT notCond
-    turn Left (lnr+8)                                    -- 6:   (for the left case, turn left before continuing to the then)
-    nextL $ \n -> turn Right n                           -- 7:   (for the right case, turn right before continuing to the then)
-    nextL $ \n -> move k1 k2                             -- 8: THEN move onto COND
+    nextL $ \n -> sense Ahead n (n+1) cond           -- 0: IF   the cell in front of me is COND
+    nextL $ \n -> sense Ahead n (lnr+8) notCond      -- 1:      AND NOT notCond
+    nextL $ \n -> sense LeftAhead n (n+1) cond       -- 2: OR   the cell left front of me is COND
+    nextL $ \n -> sense LeftAhead n (lnr+6) notCond  -- 3:      AND NOT notCond
+    nextL $ \n -> sense RightAhead n k3 cond         -- 4: OR   the cell left front of me is COND
+    sense RightAhead k3 (lnr+7) notCond              -- 5:      AND NOT notCond
+    turn Left (lnr+8)                                -- 6:   (for the left case, turn left before continuing to the then)
+    nextL $ \n -> turn Right n                       -- 7:   (for the right case, turn right before continuing to the then)
+    nextL $ \n -> move k1 k2                         -- 8: THEN move onto COND
 
 -- Turn multiple times
 -- Gets the nurmal turn parameters: a turn direction {Left, Right} and the state paramweter
@@ -167,10 +213,5 @@ random p k1 k2  = do
         getP :: Int -> Float
         getP d = 100 / (2 ** (fromIntegral d))
 
-
---
--- Some functions to help managing line numbers
---
-nextL f = get >>= \n -> f (n+1)    -- @Chiel, are you sure these functions are right this way?
-curL f = get >>= f
+-}
 
