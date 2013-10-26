@@ -143,9 +143,9 @@ followTrail _this cond k1 k2 = do
 
     -- If the marker is in front of us and we moved there, go to k1
     senseAdjMove _this k1 _moveAgain k2 cond
-    move _moveAgain k1 _moveAround
+    move7 _moveAgain k1 _moveAround
     
-    -- If we bumped into something, move around
+    -- If we keep bumping into something, move around
     moveAround _moveAround k1 k2
 
 -- Follow a trail in front, or fail
@@ -214,6 +214,25 @@ senseAdjMoveAndNot _this k1 k2 k3 cond notCond = do
     turn _turnR Right _move
     turn _turnL Left _move
     move _move k1 k2
+
+-- Move multiple times
+-- Gets the normal move parameters
+move7 :: Entry -> Cont -> Cont -> M ()
+move7 _this k1 k2 = do
+    _m2 <- alloc
+    _m3 <- alloc
+    _m4 <- alloc
+    _m5 <- alloc
+    _m6 <- alloc
+    _m7 <- alloc
+
+    move _this k1 _m2
+    move _m2 k1 _m3
+    move _m3 k1 _m4
+    move _m4 k1 _m5
+    move _m5 k1 _m6
+    move _m6 k1 _m7
+    move _m7 k1 k2
 
 -- Turn multiple times
 -- Gets the normal turn parameters: a turn direction {Left, Right} and the state paramweter
