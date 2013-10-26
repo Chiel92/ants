@@ -1,4 +1,4 @@
-module AntBrains where
+module AntBrain where
 
 import AntSkull
 import Prelude hiding (drop, Right, Left, (&&), (||))
@@ -11,6 +11,9 @@ _HOME    = 5
 
 
 main = debug $ program 0
+
+test _this = do
+    search 0 0 0
 
 -- Our strategy
 program :: Entry -> M ()
