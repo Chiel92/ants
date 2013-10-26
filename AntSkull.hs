@@ -138,12 +138,14 @@ tryFollowTrail _this cond k = do
 -- Follow a trail in front, or fail
 followTrail :: Entry -> Condition -> Cont -> Cont -> M ()
 followTrail _this cond k1 k2 = do
+    _moveAgain  <- alloc
     _moveAround <- alloc
 
     -- If the marker is in front of us and we moved there, go to k1
-    senseAdjMove _this k1 _moveAround k2 cond
+    senseAdjMove _this k1 _moveAgain k2 cond
+    move7 _moveAgain k1 _moveAround
 
-    -- If we bumped into something, move around
+    -- If we keep bumping into something, move around
     moveAround _moveAround k1 k2
 
 -- Try to pass at the right side
@@ -181,16 +183,20 @@ senseAdjMove :: Entry -> Cont -> Cont -> Cont -> Condition -> M ()
 senseAdjMove _this k1 k2 k3 cond = do
     _or2   <- alloc
     _or3   <- alloc
-    _move  <- alloc
     _turnR <- alloc
     _turnL <- alloc
+    _moveA <- alloc
+    _moveR <- alloc
+    _moveL <- alloc
 
-    when _this (If Ahead cond) _move _or2
+    when _this (If Ahead cond) _moveA _or2
     when _or2 (If RightAhead cond) _turnR _or3
     when _or3 (If LeftAhead cond) _turnL k3
-    turn _turnR Right _move
-    turn _turnL Left _move
-    move _move k1 k2
+    move _moveA k1 _or2
+    turn _turnR Right _moveR
+    move _moveR k1 _or3
+    turn _turnL Left _moveL
+    move _moveL k1 k2
 
 -- Check a condition in all adjacent directions, and move to the corresponding place if the condition holds
 -- Gets three state parameters (move succes, move fail and condition fail), the condition and the not-condition
@@ -208,6 +214,25 @@ senseAdjMoveAndNot _this k1 k2 k3 cond notCond = do
     turn _turnR Right _move
     turn _turnL Left _move
     move _move k1 k2
+
+-- Move multiple times
+-- Gets the normal move parameters
+move7 :: Entry -> Cont -> Cont -> M ()
+move7 _this k1 k2 = do
+    _m2 <- alloc
+    _m3 <- alloc
+    _m4 <- alloc
+    _m5 <- alloc
+    _m6 <- alloc
+    _m7 <- alloc
+
+    move _this k1 _m2
+    move _m2 k1 _m3
+    move _m3 k1 _m4
+    move _m4 k1 _m5
+    move _m5 k1 _m6
+    move _m6 k1 _m7
+    move _m7 k1 k2
 
 -- Turn multiple times
 -- Gets the normal turn parameters: a turn direction {Left, Right} and the state paramweter
