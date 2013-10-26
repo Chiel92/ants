@@ -123,16 +123,16 @@ when n1 (Or expr1 expr2) k1 k2 = do
 -- Do a random walk (for one step)
 randomMove :: Entry -> Cont -> M ()
 randomMove _this k = do
-    n2 <- alloc
-    n3 <- alloc
-    n4 <- alloc
-    n5 <- alloc
+    _rand  <- alloc
+    _turnR <- alloc
+    _turnL <- alloc
+    _move  <- alloc
 
-    rand _this 2 n5 n2
-    rand n2 2 n3 n4
-    turn n3 Right n5
-    turn n4 Left n5
-    move n5 k _this
+    random _this 50 _move _rand
+    random _rand 50 _turnR _turnL
+    turn _turnR Right _move
+    turn _turnL Left _move
+    move _move k _this
 
 
 tryFollowTrail :: Entry -> Mark -> Cont -> Cont -> M ()
@@ -149,24 +149,9 @@ tryFollowTrail _this m k1 k2 = do
 
     turn _moveOnTrail Right _moveForward
 
--- Do a random walk (for one step)
--- GEEF GLOBALS DOOR ALS PARAMETERS
-randomMove :: Entry -> Cont -> M ()
-randomMove n1 k = do
-    n2 <- alloc
-    n3 <- alloc
-    n4 <- alloc
-    n5 <- alloc
-
-    rand n1 2 n5 n2
-    rand n2 2 n3 n4
-    turn n3 Right n5
-    turn n4 Left n5
-    move n5 k n1
-
 -- Check a condition in all adjacent directions
 -- Gets the two state parameters and the condition
-senseAdj :: Entry -> Cont -> Cont -> Condition -> StateT Int IO ()
+senseAdj :: Entry -> Cont -> Cont -> Condition -> M ()
 senseAdj _this k1 k2 cond = when _this (If Ahead cond || If RightAhead cond || If LeftAhead cond) k1 k2
 
 -- Check a condition in all adjacent directions, and move to the corresponding place if the condition holds
@@ -204,7 +189,7 @@ senseAdjMoveAndNot _this k1 k2 k3 cond notCond = do
     move _move k1 k2 
 
 -- Turn multiple times
--- Gets the nurmal turn parameters: a turn direction {Left, Right} and the state paramweter
+-- Gets the normal turn parameters: a turn direction {Left, Right} and the state paramweter
 turn2 :: Entry -> Turn -> Cont -> M ()
 turn2 _this t k = do
     _t2 <- alloc
@@ -212,34 +197,14 @@ turn2 _this t k = do
     turn _this t _t2
     turn _t2 t k
 
-turnAround :: Int -> StateT Int IO ()
-turnAround k = do
+turnAround :: Entry -> Cont -> M ()
+turnAround _this k = do
     _t2 <- alloc
     _t3 <- alloc
 
-    turn _this t _t2
-    turn _t2 t _t3
-    turn _t3 t k
-
--- Do a random walk (for one step)
-randomMove :: Int -> StateT Int IO ()
-randomMove k = do         -- Total: 5
-    n <- get
-    random 75 (n+4) (n+1) -- n
-    random 50 (n+2) (n+3) -- n+1
-    turn Right (n+4)      -- n+2
-    turn Left (n+4)       -- n+3
-    move k n              -- n+4
-
--- Do a random move, but with a high chance of following markers (for one step)
-biasedMove :: Int -> StateT Int IO ()
-biasedMove k = do                                     -- Total: 18 = 13+1 + 5-1
-    lnr <- get
-    random 90 (lnr+1) (lnr+13)                        -- 0:
-    senseAdjMove k (lnr+7) (lnr+7) (Marker 0)         -- 1:
-    senseAdjMove k (lnr+13) (lnr+13) (Marker 1)       -- 7:
-    randomMove k                                      -- 13:
-
+    turn _this Right _t2
+    turn _t2 Right _t3
+    turn _t3 Right k
 
 -- Create a decent randomizer in terms of the Flip randomizer
 -- Gets its current line number, the percentage in [0, 100], and the two state parameters
