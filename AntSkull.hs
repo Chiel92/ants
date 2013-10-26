@@ -37,9 +37,6 @@ alloc = do
 --
 -- IO functionality
 --
-main = do
-    debug $ program 0
-    --mapM_ print (run program)
 
 -- Generate the program and sort instructions on line number
 run :: M () -> Program
@@ -48,10 +45,6 @@ run prog = sortBy (compare `on` fst) (snd $ runWriter (runStateT (alloc >> prog)
 -- Print function to IO
 debug :: M () -> IO ()
 debug prog = mapM_ (putStrLn . snd) (run prog)
-
--- An example program
-program :: Entry -> M ()
-program n1 = randomMove n1 0
 
 
 --
@@ -68,19 +61,19 @@ type Mark      = Int
 --
 -- The primitive functions
 --
-sense :: Entry -> SenseDir -> Int -> Int -> Condition -> M ()
+sense :: Entry -> SenseDir -> Cont -> Cont -> Condition -> M ()
 sense n = compile "Sense" n
 
-mark :: Entry -> Mark -> Int -> M ()
+mark :: Entry -> Mark -> Cont -> M ()
 mark n = compile "Mark" n
 
-unmark :: Entry -> Mark -> Int -> M ()
+unmark :: Entry -> Mark -> Cont -> M ()
 unmark n = compile "Unmark" n
 
-pickup :: Entry -> Int -> Int -> M ()
+pickup :: Entry -> Cont -> Cont -> M ()
 pickup n = compile "PickUp" n
 
-drop :: Entry -> Int -> M ()
+drop :: Entry -> Cont -> M ()
 drop n = compile "Drop" n
 
 turn :: Entry -> Turn -> Cont -> M ()
@@ -135,39 +128,57 @@ randomMove _this k = do
     move _move k _this
 
 -- Try follow a trail in front, else do a random move
-tryFollowTrail :: Entry -> Mark -> Cont -> M ()
-tryFollowTrail _this m k = do
+tryFollowTrail :: Entry -> Condition -> Cont -> M ()
+tryFollowTrail _this c k = do
     _randomMove <- alloc
 
-    followTrail _this m k _randomMove
+    followTrail _this c k _randomMove
     randomMove _randomMove k
 
 -- Follow a trail in front, or fail
-followTrail :: Entry -> Mark -> Cont -> Cont -> M ()
-followTrail _this m k1 k2 = do
-    _turnLeft    <- alloc
-    _checkRight  <- alloc
-    _checkRightAgain  <- alloc
-    _turnRight    <- alloc
-    _moveForward <- alloc
-    _turnToTrail <- alloc
-    _moveOnTrail <- alloc
+followTrail :: Entry -> Condition -> Cont -> Cont -> M ()
+followTrail _this c k1 k2 = do
+    _turnLeft        <- alloc
+    _checkRight      <- alloc
+    _checkRightAgain <- alloc
+    _turnRight       <- alloc
+    _moveForward     <- alloc
+    _turnToTrail     <- alloc
+    _moveOnTrail     <- alloc
     _turnBackLeft    <- alloc
 
     -- Turn left till no marker is ahead, then _checkRight
-    when _this (If Ahead (Marker m)) _turnLeft _checkRight
+    when _this (If Ahead c) _turnLeft _checkRight
     turn _turnLeft Left _this
 
     -- Try follow a trail (and turn right, if needed), else _turnToTrail
-    when _checkRight (If RightAhead (Marker m)) _moveForward _turnRight
+    when _checkRight (If RightAhead c) _moveForward _turnRight
     turn _turnRight Right _checkRightAgain
-    when _checkRightAgain (If RightAhead (Marker m)) _moveForward k2
+    when _checkRightAgain (If RightAhead c) _moveForward k2
     move _moveForward k1 _turnToTrail
 
     -- Move on the trail if we can't go forward
     turn _turnToTrail Right _moveOnTrail
     move _moveOnTrail _turnBackLeft _turnRight
     turn _turnBackLeft Left k1
+
+
+-- Store food
+storeFood :: Entry -> Cont -> Cont -> Cont -> M ()
+storeFood _this _GetFood _Defend _ReturnFood= do
+    _dropFoodRightAhead <- alloc
+    _dropFoodAhead      <- alloc
+    _dropFood           <- alloc
+    _moveAround         <- alloc
+    _followHome         <- alloc
+
+    when _this (If RightAhead Food) _dropFoodRightAhead _followHome
+    turn _dropFoodRightAhead Right _dropFoodAhead
+    move _dropFoodAhead _dropFood _followHome
+    drop _dropFood _GetFood
+
+    followTrail _followHome Home _this _ReturnFood
+
 
 -- Check a condition in all adjacent directions
 -- Gets the two state parameters and the condition
