@@ -14,7 +14,7 @@ import Prelude hiding (Left, Right)
 class Compile r where
     compile :: String -> Entry -> r
 
-instance Compile (StateT Int (Writer Program) () ) where
+instance Compile (M () ) where
     compile s n = lift $ writer ((), [(n, s)])
 
 instance (Compile r, Show a) => Compile (a -> r) where
@@ -24,6 +24,7 @@ instance (Compile r, Show a) => Compile (a -> r) where
 type Entry = Int
 type Cont = Int
 type Program = [(Entry, String)]
+type M = StateT Int (Writer Program)
 
 
 --
@@ -40,92 +41,78 @@ type Mark      = Int
 --
 -- The primitive functions
 --
-sense :: Entry -> SenseDir -> Int -> Int -> Condition -> StateT Int (Writer Program) ()
+sense :: Entry -> SenseDir -> Int -> Int -> Condition -> M ()
 sense n = compile "Sense" n
 
-mark :: Entry -> Mark -> Int -> StateT Int (Writer Program) ()
+mark :: Entry -> Mark -> Int -> M ()
 mark n = compile "Mark" n
 
-unmark :: Entry -> Mark -> Int -> StateT Int (Writer Program) ()
+unmark :: Entry -> Mark -> Int -> M ()
 unmark n = compile "Unmark" n
 
-pickup :: Entry -> Int -> Int -> StateT Int (Writer Program) ()
+pickup :: Entry -> Int -> Int -> M ()
 pickup n = compile "PickUp" n
 
-drop :: Entry -> Int -> StateT Int (Writer Program) ()
+drop :: Entry -> Int -> M ()
 drop n = compile "Drop" n
 
-turn :: Entry -> Turn -> Cont -> StateT Int (Writer Program) ()
+turn :: Entry -> Turn -> Cont -> M ()
 turn n = compile "Turn" n
 
-move :: Entry -> Cont -> Cont -> StateT Int (Writer Program) ()
+move :: Entry -> Cont -> Cont -> M ()
 move n = compile "Move" n
 
-rand :: Entry -> Int -> Cont -> Cont -> StateT Int (Writer Program) ()
+rand :: Entry -> Int -> Cont -> Cont -> M ()
 rand n = compile "Flip" n
 
 
---shift :: StateT Int (Writer Program) ()
---shift = do
---    n <- get
---    modify (+1)
---    return n
+alloc :: M Int
+alloc = do
+    n <- get
+    modify (+1)
+    return n
 
 -- print program to IO
 main = do
-    mapM_ (putStrLn . snd) (run program')
-    --mapM_ print (run program')
+    mapM_ (putStrLn . snd) (run program)
+    mapM_ print (run program)
 
 -- generate the program and sort instructions on line number
 run program = sortBy (compare `on` fst) (snd $ runWriter (runStateT program 1))
 
 -- an example program
-program = randomMove' 0 0
-program' = biasedMove' 0 0
+program = randomMove 0 0
 
 
+
+{-
+-- Check a condition in all adjacent directions, and move to the corresponding place if the condition holds
+-- Gets three state parameters (move succes, move fail and condition fail) and the condition
+senseAdjMove :: Entry -> Int -> Int -> Int -> Condition -> StateT Int IO ()
+senseAdjMove n k1 k2 k3 cond = do                  -- Total: 6
+    lnr <- get
+    nextL $ \n -> sense Ahead (lnr+5) n cond     -- 0: IF   the cell in front of me is COND
+    nextL $ \n -> sense LeftAhead (lnr+3) n cond -- 1: OR   the cell left front of me is COND
+    sense RightAhead (lnr+4) k3 cond             -- 2: OR   the cell left front of me is COND
+    turn Left (lnr+5)                            -- 3:   (for the left case, turn left before continuing to the then)
+    nextL $ \n -> turn Right n                   -- 4:   (for the right case, turn right before continuing to the then)
+    nextL $ \n -> move k1 k2                     -- 5: THEN move onto COND
+-}
 
 -- Do a random walk (for one step)
 -- GEEF GLOBALS DOOR ALS PARAMETERS
-randomMove' :: Entry -> Cont -> StateT Int (Writer Program) ()
-randomMove' n k = do
-    --(n1,n2,n3,n4,n5) <- return (n+1, n+2, n+3, n+4, n+5)
-    --modify (+5)
-    -- n1 <- shift
-    -- n2 <- shift
-    -- n3 <- shift
-    -- n4 <- shift
-    -- n5 <- shift
-    n2 <- get
-    modify (+1)
-    n3 <- get
-    modify (+1)
-    n4 <- get
-    modify (+1)
-    n5 <- get
-    modify (+1)
+randomMove :: Entry -> Cont -> M ()
+randomMove n1 k = do
+    n2 <- alloc
+    n3 <- alloc
+    n4 <- alloc
+    n5 <- alloc
 
-    rand n 2 n5 n2
+    rand n1 2 n5 n2
     rand n2 2 n3 n4
     turn n3 Right n5
     turn n4 Left n5
-    move n5 k n
-
--- Do a random move, but with a high chance of following markers (for one step)
-biasedMove' :: Entry -> Cont -> StateT Int (Writer Program) ()
-biasedMove' n k = do
-    n2 <- get
-    modify (+1)
-    n3 <- get
-    modify (+1)
-    n4 <- get
-    modify (+1)
-
-    rand n 4 n2 n3
-    turn n2 Right k
-    randomMove' n3 k
-    turn n4 Left k
-
+    move n5 k n1
 
 {-
 --
@@ -227,10 +214,4 @@ random p k1 k2  = do
         getP d = 100 / (2 ** (fromIntegral d))
 
 -}
-
---
--- Some functions to help managing line numbers
---
-nextL f = get >>= \n -> f (n+1)    -- @Chiel, are you sure these functions are right this way?
-curL f = get >>= f
 
