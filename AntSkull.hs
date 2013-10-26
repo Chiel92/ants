@@ -119,7 +119,7 @@ when n1 (Or expr1 expr2) k1 k2 = do
 --
 -- GEEF GLOBALS DOOR ALS PARAMETERS
 
--- Do a random walk (for one step)
+-- Do a random move (biased to go fairly straight)
 randomMove :: Entry -> Cont -> M ()
 randomMove _this k = do
     n2 <- alloc
@@ -127,15 +127,23 @@ randomMove _this k = do
     n4 <- alloc
     n5 <- alloc
 
-    rand _this 2 n5 n2
-    rand n2 2 n3 n4
+    random _this 75 n5 n2
+    random n2 50 n3 n4
     turn n3 Right n5
     turn n4 Left n5
     move n5 k _this
 
+-- Try follow a trail in front, else do a random move
+tryFollowTrail :: Entry -> Mark -> Cont -> M ()
+tryFollowTrail _this m k = do
+    _randomMove <- alloc
 
-tryFollowTrail :: Entry -> Mark -> Cont -> Cont -> M ()
-tryFollowTrail _this m k1 k2 = do
+    followTrail _this m k _randomMove
+    randomMove _randomMove k
+
+-- Follow a trail in front, or fail
+followTrail :: Entry -> Mark -> Cont -> Cont -> M ()
+followTrail _this m k1 k2 = do
     _turnLeft    <- alloc
     _checkRight  <- alloc
     _checkRightAgain  <- alloc
@@ -145,13 +153,14 @@ tryFollowTrail _this m k1 k2 = do
     _moveOnTrail <- alloc
     _turnBackLeft    <- alloc
 
+    -- Turn left till no marker is ahead, then _checkRight
     when _this (If Ahead (Marker m)) _turnLeft _checkRight
     turn _turnLeft Left _this
 
+    -- Try follow a trail (and turn right, if needed), else _turnToTrail
     when _checkRight (If RightAhead (Marker m)) _moveForward _turnRight
     turn _turnRight Right _checkRightAgain
     when _checkRightAgain (If RightAhead (Marker m)) _moveForward k2
-
     move _moveForward k1 _turnToTrail
 
     -- Move on the trail if we can't go forward
