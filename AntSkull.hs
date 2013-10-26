@@ -149,17 +149,25 @@ followTrail _this cond k1 k2 = do
 -- Follow a trail in front, or fail
 moveAround :: Entry -> Cont -> Cont -> M ()
 moveAround _this k1 k2 = do
-    _moveForward  <- alloc
-    _turnBack     <- alloc
-    _turnBackFail <- alloc
+    _moveForwardRight  <- alloc
+    _turnBackRight     <- alloc
+    _turnLeft          <- alloc
+    _moveForwardLeft   <- alloc
+    _turnBackLeft      <- alloc
+    _moveLeftFailed    <- alloc
 
     -- Turn right, move forward and turn back left
-    turn _this Right _moveForward
-    move _moveForward _turnBack k2
-    turn _turnBack Left k1
+    turn _this Right _moveForwardRight
+    move _moveForwardRight _turnBackRight _turnLeft
+    turn _turnBackRight Left k1
 
-    -- If the move failed, try to pass at the left side (TODO)
-    turn _turnBackFail Left k2
+    -- If the move failed, try to pass at the left side
+    turn2 _turnLeft Left _moveForwardLeft
+    move _moveForwardLeft _turnBackLeft _moveLeftFailed
+    turn _turnBackLeft Right k1
+    
+    -- If that failed as well, then turn back and fail for real
+    turn _moveLeftFailed Right k2
 
 
 -- Check a condition in all adjacent directions
