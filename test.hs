@@ -4,6 +4,9 @@ module AntSkull where
 import Control.Monad.State
 import Control.Monad.Identity
 import Control.Monad.Writer
+import Data.List (sortBy)
+import Data.Function (on)
+import Data.Map
 import Prelude hiding (Left, Right)
 
 
@@ -32,8 +35,9 @@ instance (Compile r, Show a) => Compile (a -> r) where
     compile s x = compile (s ++ " " ++ show x)
 
 
-type Identifier = Int
-type Program = [(Identifier, String)]
+type Entry = Int
+type Cont = Int
+type Program = [(Entry, String)]
 
 
 --shift :: StateT Int (Writer Program) ()
@@ -43,15 +47,20 @@ type Program = [(Identifier, String)]
 --    return n
 
 main = do
-    --mapM_ (putStrLn . snd) (snd program)
-    mapM_ (print) (snd program')
+    mapM_ (putStrLn . snd) (run program')
+    --mapM_ print (run program')
 
-program = runWriter $ runStateT (randomMove' 0 0) 0
-program' = runWriter $ runStateT (biasedMove' 0 0) 0
+run program = sortBy (compare `on` fst) (snd $ runWriter (runStateT program 1))
+
+
+program = randomMove' 0 0
+program' = biasedMove' 0 0
+
+
 
 -- Do a random walk (for one step)
 -- GEEF GLOBALS DOOR ALS PARAMETERS
-randomMove' :: Int -> Int -> StateT Int (Writer Program) ()
+randomMove' :: Entry -> Cont -> StateT Int (Writer Program) ()
 randomMove' n k = do
     --(n1,n2,n3,n4,n5) <- return (n+1, n+2, n+3, n+4, n+5)
     --modify (+5)
@@ -76,7 +85,7 @@ randomMove' n k = do
     move n5 k n
 
 -- Do a random move, but with a high chance of following markers (for one step)
-biasedMove' :: Int -> Int -> StateT Int (Writer Program) ()
+biasedMove' :: Entry -> Cont -> StateT Int (Writer Program) ()
 biasedMove' n k = do
     n2 <- get
     modify (+1)
@@ -120,13 +129,13 @@ pickup = compile "PickUp"
 drop :: Int -> StateT Int IO ()
 drop = compile "Drop"
 
-turn :: Int -> Turn -> Int -> StateT Int (Writer Program) ()
+turn :: Entry -> Turn -> Cont -> StateT Int (Writer Program) ()
 turn n t k = lift $ writer ((), [(n, "Turn " ++ show t ++ " " ++ show k)])
 
-move :: Int -> Int -> Int -> StateT Int (Writer Program) ()
+move :: Entry -> Cont -> Cont -> StateT Int (Writer Program) ()
 move n k1 k2 = lift $ writer ((), [(n, "Move " ++ show k1 ++ " " ++ show k2)])
 
-rand :: Int -> Int -> Int -> Int -> StateT Int (Writer Program) ()
+rand :: Entry -> Int -> Cont -> Cont -> StateT Int (Writer Program) ()
 rand n p k1 k2 = lift $ writer ((), [(n, "Flip " ++ show p ++ show k1 ++ " " ++ show k2)])
 
 comment :: String -> StateT Int IO ()
