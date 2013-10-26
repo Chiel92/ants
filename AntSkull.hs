@@ -5,7 +5,7 @@ import Control.Monad.State hiding (when)
 import Control.Monad.Writer hiding (when)
 import Data.List (sortBy)
 import Data.Function (on)
-import Prelude hiding (Left, Right, (&&), (||))
+import Prelude hiding (drop, Left, Right, (&&), (||))
 
 
 --
@@ -120,7 +120,7 @@ when n1 (Or expr1 expr2) k1 k2 = do
 --
 -- GEEF GLOBALS DOOR ALS PARAMETERS
 
--- Do a random walk (for one step)
+-- Do a random move (biased to go fairly straight)
 randomMove :: Entry -> Cont -> M ()
 randomMove _this k = do
     _rand  <- alloc
@@ -128,26 +128,46 @@ randomMove _this k = do
     _turnL <- alloc
     _move  <- alloc
 
-    random _this 50 _move _rand
+    random _this 75 _move _rand
     random _rand 50 _turnR _turnL
     turn _turnR Right _move
     turn _turnL Left _move
     move _move k _this
 
+-- Try follow a trail in front, else do a random move
+tryFollowTrail :: Entry -> Mark -> Cont -> M ()
+tryFollowTrail _this m k = do
+    _randomMove <- alloc
 
-tryFollowTrail :: Entry -> Mark -> Cont -> Cont -> M ()
-tryFollowTrail _this m k1 k2 = do
+    followTrail _this m k _randomMove
+    randomMove _randomMove k
+
+-- Follow a trail in front, or fail
+followTrail :: Entry -> Mark -> Cont -> Cont -> M ()
+followTrail _this m k1 k2 = do
     _turnLeft    <- alloc
     _checkRight  <- alloc
+    _checkRightAgain  <- alloc
+    _turnRight    <- alloc
     _moveForward <- alloc
+    _turnToTrail <- alloc
     _moveOnTrail <- alloc
+    _turnBackLeft    <- alloc
 
+    -- Turn left till no marker is ahead, then _checkRight
     when _this (If Ahead (Marker m)) _turnLeft _checkRight
     turn _turnLeft Left _this
-    when _checkRight (If RightAhead (Marker m)) _moveForward k2
-    move _moveForward k1 _moveOnTrail
 
-    turn _moveOnTrail Right _moveForward
+    -- Try follow a trail (and turn right, if needed), else _turnToTrail
+    when _checkRight (If RightAhead (Marker m)) _moveForward _turnRight
+    turn _turnRight Right _checkRightAgain
+    when _checkRightAgain (If RightAhead (Marker m)) _moveForward k2
+    move _moveForward k1 _turnToTrail
+
+    -- Move on the trail if we can't go forward
+    turn _turnToTrail Right _moveOnTrail
+    move _moveOnTrail _turnBackLeft _turnRight
+    turn _turnBackLeft Left k1
 
 -- Check a condition in all adjacent directions
 -- Gets the two state parameters and the condition
@@ -186,7 +206,7 @@ senseAdjMoveAndNot _this k1 k2 k3 cond notCond = do
     when _or3 (If LeftAhead cond && notIf Ahead notCond) _turnL k3
     turn _turnR Right _move
     turn _turnL Left _move
-    move _move k1 k2 
+    move _move k1 k2
 
 -- Turn multiple times
 -- Gets the normal turn parameters: a turn direction {Left, Right} and the state paramweter
@@ -216,27 +236,4 @@ random _this 67 k1 k2 = rand _this 3 k2 k1
 random _this 75 k1 k2 = rand _this 4 k2 k1
 random _this 90 k1 k2 = rand _this 10 k2 k1
 random _this 50 k1 k2 = rand _this 2 k1 k2
-{-
-random _this p k1 k2  = do
-    lnr <- get
-    rtree lnr p 50 1
-      where
-        rtree :: Int -> Float -> Float -> Int -> StateT Int IO ()
-        rtree lnr p q d | close p q = rand 2 k1 k2
-                        | otherwise = if p < q
-                                      then do
-                                          rand 2 (lnr+d) k2
-                                          rtree lnr p (q - getP (d+1)) (d+1)
-                                      else do
-                                          rand 2 k1 (lnr+d)
-                                          rtree lnr p (q + getP (d+1)) (d+1)
-
-        -- Check if the current probability is close enough to the wanted probability
-        close :: Float -> Float -> Bool
-        close goalP currentP = abs (goalP - currentP) < 1
-
-        -- Get the probability corresponding to the depth of the tree
-        getP :: Int -> Float
-        getP d = 100 / (2 ** (fromIntegral d))
--}
 
