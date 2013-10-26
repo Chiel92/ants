@@ -169,7 +169,7 @@ moveAround _this k1 k2 = do
     turn2 _turnBackLeft Right k1
 
     -- If that failed as well, then turn back and fail for real
-    turn1 _moveLeftFailed Right k2
+    turn _moveLeftFailed Right k2
 
 
 -- Check a condition in all adjacent directions
