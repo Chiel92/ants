@@ -138,10 +138,12 @@ tryFollowTrail _this cond k = do
 -- Follow a trail in front, or fail
 followTrail :: Entry -> Condition -> Cont -> Cont -> M ()
 followTrail _this cond k1 k2 = do
+    _moveAgain  <- alloc
     _moveAround <- alloc
 
     -- If the marker is in front of us and we moved there, go to k1
-    senseAdjMove _this k1 _moveAround k2 cond
+    senseAdjMove _this k1 _moveAgain k2 cond
+    move _moveAgain k1 _moveAround
     
     -- If we bumped into something, move around
     moveAround _moveAround k1 k2
@@ -181,16 +183,20 @@ senseAdjMove :: Entry -> Cont -> Cont -> Cont -> Condition -> M ()
 senseAdjMove _this k1 k2 k3 cond = do
     _or2   <- alloc
     _or3   <- alloc
-    _move  <- alloc
     _turnR <- alloc
     _turnL <- alloc
+    _moveA <- alloc
+    _moveR <- alloc
+    _moveL <- alloc
 
-    when _this (If Ahead cond) _move _or2
+    when _this (If Ahead cond) _moveA _or2
     when _or2 (If RightAhead cond) _turnR _or3
     when _or3 (If LeftAhead cond) _turnL k3
-    turn _turnR Right _move
-    turn _turnL Left _move
-    move _move k1 k2
+    move _moveA k1 _or2
+    turn _turnR Right _moveR
+    move _moveR k1 _or3
+    turn _turnL Left _moveL
+    move _moveL k1 k2
 
 -- Check a condition in all adjacent directions, and move to the corresponding place if the condition holds
 -- Gets three state parameters (move succes, move fail and condition fail), the condition and the not-condition
