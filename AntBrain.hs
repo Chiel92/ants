@@ -116,20 +116,48 @@ returnFood _this _StoreFood = do
 
 
 storeFood :: Entry -> Cont -> Cont -> Cont -> M ()
-storeFood _this _GetFood _Defend _ReturnFood= do
+storeFood _this _GetFood _Defend _ReturnFood = do
     _dropFoodRightAhead <- alloc
     _dropFoodAhead      <- alloc
     _dropFood           <- alloc
-    _followHome         <- alloc
+    _followHomeBorder   <- alloc
 
     -- COMMENT
-    when _this (If RightAhead Food) _dropFoodRightAhead _followHome
+    when _this (If RightAhead Food) _dropFoodRightAhead _followHomeBorder
     turn _dropFoodRightAhead Right _dropFoodAhead
-    move _dropFoodAhead _dropFood _followHome
+    move _dropFoodAhead _dropFood _followHomeBorder
     drop _dropFood _GetFood
 
     -- COMMENT
-    followTrail _followHome Home _this _ReturnFood
+    followHomeBorder _followHomeBorder _this _ReturnFood
+
+
+-- Follow a trail in front, or fail
+followHomeBorder :: Entry -> Cont -> Cont -> M ()
+followHomeBorder _this k1 k2 = do
+    _turnLeft        <- alloc
+    _checkRight      <- alloc
+    _checkRightAgain <- alloc
+    _turnRight       <- alloc
+    _moveForward     <- alloc
+    _turnToTrail     <- alloc
+    _moveOnTrail     <- alloc
+    _turnBackLeft    <- alloc
+
+    -- Turn left till no marker is ahead, then _checkRight
+    when _this (If Ahead Home) _moveForward _checkRight
+    turn _turnLeft Left _this
+
+    -- Try follow a trail (and turn right, if needed), else _turnToTrail
+    when _checkRight (If RightAhead Home) _moveForward _turnRight
+    turn _turnRight Right _checkRightAgain
+    when _checkRightAgain (If RightAhead Home) _moveForward k2
+    move _moveForward k1 _turnToTrail
+
+    -- Move on the trail if we can't go forward
+    turn _turnToTrail Right _moveOnTrail
+    move _moveOnTrail _turnBackLeft _turnRight
+    turn _turnBackLeft Left k1
 
 
 defend :: Entry -> M ()
