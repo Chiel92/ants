@@ -7,7 +7,7 @@ import Prelude hiding (drop, Right, Left, (&&), (||))
 -- The markers
 _FOEHOME = 0
 _FOOD    = 1
-_HOME    = 5
+_PATH    = 5
 
 
 main = debug $ program 0
@@ -36,20 +36,24 @@ program _Search = do
     getFood _GetFood _ReturnFood
     returnFood _ReturnFood _StoreFood
     storeFood _StoreFood _GetFood _Defend _ReturnFood
-    move _Defend 0 0
+    defend _Defend
 
 
 -- The implementation functions for our strategy
 search :: Entry -> Cont -> Cont -> M ()
 search _this _TellFood _TellFoeHome = do
+    _checkFoe       <- alloc
     _turnAroundFoe  <- alloc
     _checkFood      <- alloc
     _pickUp         <- alloc
     _turnAroundFood <- alloc
     _randomWalk     <- alloc
 
+    -- Mark our current path
+    mark _this _PATH _checkFoe
+
     -- If se see the FoeHome, run away and _TellFoeHome
-    senseAdj _this _turnAroundFoe _checkFood FoeHome
+    senseAdj _checkFoe _turnAroundFoe _checkFood FoeHome
     turnAround _turnAroundFoe _TellFoeHome
 
     -- If we see Food (not on our Home), pick it up and TELL_FOOD
@@ -68,22 +72,22 @@ tellFoehome _this = do
 
 tellFood :: Entry -> Cont -> Cont -> Cont -> M ()
 tellFood _this _GetFood _ReturnFood _StoreFood = do
-    _checkExistingMarker <- alloc
-    _checkHome           <- alloc
-    _dropFood            <- alloc
-    _randomWalk          <- alloc
-
-    -- Mark the current spot
-    mark _this _FOOD _checkExistingMarker
+    _mark        <- alloc
+    _checkHome   <- alloc
+    _dropFood    <- alloc
+    _followTrail <- alloc
 
     -- Check if there already is a food marker (if so, _ReturnFood)
-    senseAdj _checkExistingMarker _ReturnFood _checkHome (Marker _FOOD)
+    senseAdj _this _ReturnFood _mark (Marker _FOOD)
+
+    -- If we didn't find another marker, mark the current spot
+    mark _mark _FOOD _checkHome
 
     -- Check if we are home, if so, _StoreFood
-    senseAdj _checkHome _StoreFood _randomWalk Home
+    senseAdj _checkHome _StoreFood _followTrail Home
 
-     -- If we did not find home or another food marker, do the random walk
-    randomMove _randomWalk _this
+    -- If we did not find home or another food marker, return to home along our previous path
+    tryFollowTrail _followTrail (Marker _PATH) _this
 
 
 getFood :: Entry -> Cont -> M ()
@@ -128,4 +132,9 @@ storeFood _this _GetFood _Defend _ReturnFood= do
 
     -- COMMENT
     followTrail _followHome Home _this _ReturnFood
+
+
+defend :: Entry -> M ()
+defend _this = do
+    move _this 0 0
 
