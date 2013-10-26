@@ -82,13 +82,13 @@ getFood _this _ReturnFood = do
     _tryFollowTrail <- alloc 
 
     -- Check if we found food, if so, get it, turn around and _ReturnFood
-    senseAdjMoveAndNot _this _pickUp _randomWalk _randomWalk Food Home
+    senseAdjMoveAndNot _this _pickUp _tryFollowTrail _tryFollowTrail Food Home
     pickup _pickUp _turnAround _tryFollowTrail
     turnAround _turnAround _ReturnFood
 
     -- If we didn't find food, follow the trail to the food
     tryFollowTrail _tryFollowTrail (Marker _FOOD) _this
-    
+
 
 returnFood :: Entry -> Entry -> M ()
 returnFood _this _StoreFood = do
