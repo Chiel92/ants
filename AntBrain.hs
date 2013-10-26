@@ -10,6 +10,8 @@ _FOOD    = 1
 _HOME    = 5
 
 
+main = debug $ program 0
+
 -- Our strategy
 program :: Entry -> M ()
 program _Search = do
@@ -75,7 +77,7 @@ tellFood _this _GetFood _ReturnFood _StoreFood = do
     senseAdj _checkExistingMarker _ReturnFood _checkHome (Marker _FOOD)
 
     -- Check if we are home, if so, _StoreFood
-    senseAdj _checkHome _StoreFood _randomWalk _randomWalk Home
+    senseAdj _checkHome _StoreFood _randomWalk Home
 
      -- If we did not find home or another food marker, do the random walk
     randomMove _randomWalk _this
@@ -101,7 +103,7 @@ returnFood _this _StoreFood = do
     _tryFollowTrail <- alloc
 
     -- Check if we found home, if so _StoreFood
-    senseAdj _this _StoreFood _tryFollowTrail _tryFollowTrail Home
+    senseAdj _this _StoreFood _tryFollowTrail Home
 
     -- If we didn't find home, follow the trail
     tryFollowTrail _tryFollowTrail (Marker _FOOD) _this
