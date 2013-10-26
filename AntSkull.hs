@@ -5,7 +5,7 @@ import Control.Monad.State hiding (when)
 import Control.Monad.Writer hiding (when)
 import Data.List (sortBy)
 import Data.Function (on)
-import Prelude hiding (Left, Right, (&&), (||))
+import Prelude hiding (drop, Left, Right, (&&), (||))
 
 
 --
@@ -138,15 +138,26 @@ tryFollowTrail :: Entry -> Mark -> Cont -> Cont -> M ()
 tryFollowTrail _this m k1 k2 = do
     _turnLeft    <- alloc
     _checkRight  <- alloc
+    _checkRightAgain  <- alloc
+    _turnRight    <- alloc
     _moveForward <- alloc
+    _turnToTrail <- alloc
     _moveOnTrail <- alloc
+    _turnBackLeft    <- alloc
 
     when _this (If Ahead (Marker m)) _turnLeft _checkRight
     turn _turnLeft Left _this
-    when _checkRight (If RightAhead (Marker m)) _moveForward k2
-    move _moveForward k1 _moveOnTrail
 
-    turn _moveOnTrail Right _moveForward
+    when _checkRight (If RightAhead (Marker m)) _moveForward _turnRight
+    turn _turnRight Right _checkRightAgain
+    when _checkRightAgain (If RightAhead (Marker m)) _moveForward k2
+
+    move _moveForward k1 _turnToTrail
+
+    -- Move on the trail if we can't go forward
+    turn _turnToTrail Right _moveOnTrail
+    move _moveOnTrail _turnBackLeft _turnRight
+    turn _turnBackLeft Left k1
 
 {-
 -- Check a condition in all adjacent directions, and move to the corresponding place if the condition holds
