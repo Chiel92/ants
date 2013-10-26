@@ -1,8 +1,8 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 module AntSkull where
 
-import Control.Monad.State
-import Control.Monad.Writer
+import Control.Monad.State hiding (when)
+import Control.Monad.Writer hiding (when)
 import Data.List (sortBy)
 import Data.Function (on)
 import Prelude hiding (Left, Right)
@@ -37,6 +37,23 @@ data Condition = Friend | Foe | FriendWithFood | FoeWithFood
 data Turn      = Left | Right deriving Show
 type Mark      = Int
 
+
+--
+-- Advanced sensing system
+--
+data Expr = If SenseDir Condition | Not Expr | And Expr Expr | Or Expr Expr
+
+when :: Entry -> Expr -> Cont -> Cont -> M ()
+when n1 (If dir cond) k1 k2 = sense n1 dir k1 k2 cond
+when n1 (Not expr) k1 k2 = when n1 expr k2 k1
+when n1 (And expr1 expr2) k1 k2 = do
+    n2 <- alloc
+    when n1 expr1 n2 k2
+    when n2 expr2 k1 k2
+when n1 (Or expr1 expr2) k1 k2 = do
+    n2 <- alloc
+    when n1 expr1 k1 n2
+    when n2 expr2 k1 k2
 
 --
 -- The primitive functions
@@ -84,6 +101,15 @@ run program = sortBy (compare `on` fst) (snd $ runWriter (runStateT program 1))
 program = randomMove 0 0
 
 
+tryFollowTrail :: Entry -> Mark -> Cont -> Cont -> M ()
+tryFollowTrail n1 m k1 k2 = do
+    n2 <- alloc
+    n3 <- alloc
+    n4 <- alloc
+    n5 <- alloc
+    return ()
+
+    -- n1 RightAhead m 
 
 {-
 -- Check a condition in all adjacent directions, and move to the corresponding place if the condition holds
