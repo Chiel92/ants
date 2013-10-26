@@ -68,6 +68,10 @@ comment s = liftIO $ putStrLn ("; " ++ s)
 --
 -- Our extension functions
 --
+-- Check (NOT condition)
+senseNot :: SenseDir -> Int -> Int -> Condition -> StateT Int IO ()
+senseNot dir k1 k2 cond = sense dir k2 k1 cond
+
 -- Check a condition in all adjacent directions
 -- Gets the two state parameters and the condition
 senseAdj :: Int -> Int -> Condition -> StateT Int IO ()
@@ -92,17 +96,17 @@ senseAdjMove k1 k2 k3 cond = do                  -- Total: 6
 -- Check a condition in all adjacent directions, and move to the corresponding place if the condition holds
 -- Gets three state parameters (move succes, move fail and condition fail), the condition and the not-condition
 senseAdjMoveAndNot :: Int -> Int -> Int -> Condition -> Condition -> StateT Int IO ()
-senseAdjMoveAndNot k1 k2 k3 cond notCond = do              -- Total: 9
+senseAdjMoveAndNot k1 k2 k3 cond notCond = do            -- Total: 9
     lnr <- get
-    nextL $ \n -> sense Ahead n (n+1) cond           -- 0: IF   the cell in front of me is COND
-    nextL $ \n -> sense Ahead n (lnr+8) notCond      -- 1:      AND NOT notCond
-    nextL $ \n -> sense LeftAhead n (n+1) cond       -- 2: OR   the cell left front of me is COND
-    nextL $ \n -> sense LeftAhead n (lnr+6) notCond  -- 3:      AND NOT notCond
-    nextL $ \n -> sense RightAhead n k3 cond         -- 4: OR   the cell left front of me is COND
-    sense RightAhead k3 (lnr+7) notCond              -- 5:      AND NOT notCond
-    turn Left (lnr+8)                                -- 6:   (for the left case, turn left before continuing to the then)
-    nextL $ \n -> turn Right n                       -- 7:   (for the right case, turn right before continuing to the then)
-    nextL $ \n -> move k1 k2                         -- 8: THEN move onto COND
+    nextL $ \n -> sense Ahead n (n+1) cond               -- 0: IF   the cell in front of me is COND
+    nextL $ \n -> senseNot Ahead (lnr+8) n notCond       -- 1:      AND NOT notCond
+    nextL $ \n -> sense LeftAhead n (n+1) cond           -- 2: OR   the cell left front of me is COND
+    nextL $ \n -> senseNot LeftAhead (lnr+6) n notCond   -- 3:      AND NOT notCond
+    nextL $ \n -> sense RightAhead n k3 cond             -- 4: OR   the cell left front of me is COND
+    senseNot RightAhead (lnr+7) k3 notCond               -- 5:      AND NOT notCond
+    turn Left (lnr+8)                                    -- 6:   (for the left case, turn left before continuing to the then)
+    nextL $ \n -> turn Right n                           -- 7:   (for the right case, turn right before continuing to the then)
+    nextL $ \n -> move k1 k2                             -- 8: THEN move onto COND
 
 -- Turn multiple times
 -- Gets the nurmal turn parameters: a turn direction {Left, Right} and the state paramweter
