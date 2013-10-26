@@ -36,7 +36,7 @@ program _Search = do
     -- Now either continue to set a trap, or to get food
     getFood _GetFood _ReturnFood
     returnFood _ReturnFood _StoreFood
-    storeFood _StoreFood _GetFood _Defend _ReturnFood
+    storeFood _StoreFood _GetFood _CheckDefend _ReturnFood
     checkDefend _CheckDefend _Defend _GetFood
     defend _Defend
 
@@ -124,23 +124,18 @@ returnFood _this _StoreFood = do
 
 
 storeFood :: Entry -> Cont -> Cont -> Cont -> M ()
-storeFood _this _GetFood _Defend _ReturnFood = do
-    _dropFoodRightAhead <- alloc
-    _dropFoodAhead      <- alloc
+storeFood _this _GetFood _CheckDefend _ReturnFood = do
     _dropFood           <- alloc
     _followHomeBorder   <- alloc
     _randomDrop         <- alloc
-    _dropAnyway         <- alloc
 
     -- COMMENT
-    when _this (If RightAhead Food) _dropFoodRightAhead _randomDrop
-    turn _dropFoodRightAhead Right _dropFoodAhead
-    move _dropFoodAhead _dropFood _followHomeBorder
-    drop _dropFood _GetFood
+    senseAdjMove _this _dropFood _followHomeBorder _randomDrop Food
+
+    drop _dropFood _CheckDefend
 
     -- With a small chance, drop food anyway
-    random _randomDrop 5 _dropAnyway _followHomeBorder
-    drop _dropAnyway _GetFood
+    random _randomDrop 5 _dropFood _followHomeBorder
 
     -- COMMENT
     followHomeBorder _followHomeBorder _this _ReturnFood
@@ -151,6 +146,8 @@ followHomeBorder :: Entry -> Cont -> Cont -> M ()
 followHomeBorder _this k1 k2 = do
     _turnLeft    <- alloc
     _checkRight  <- alloc
+    _checkRightAgain  <- alloc
+    _TurnRightAndCheckAgain<- alloc
     _turnRight   <- alloc
     _moveForward <- alloc
     _ahead       <- alloc
@@ -160,8 +157,12 @@ followHomeBorder _this k1 k2 = do
 
     when _ahead (If Ahead Home) _moveForward _checkRight
 
-    when _checkRight (If RightAhead Home) _turnRight k2
+    when _checkRight (If RightAhead Home) _turnRight _TurnRightAndCheckAgain
     turn _turnRight Right _moveForward
+
+    turn _TurnRightAndCheckAgain Right _checkRightAgain
+    when _checkRightAgain (If RightAhead Home) _turnRight k2
+
     move _moveForward k1 _checkRight
 
 
