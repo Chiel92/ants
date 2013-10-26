@@ -13,62 +13,96 @@ _HOME    = 5
 -- Our strategy
 program :: Entry -> M ()
 program _Search = do
-    _TellFoehome <- alloc
+    _TellFoeHome <- alloc
     _TellFood    <- alloc
     _GetFood     <- alloc
     _ReturnFood  <- alloc
+    _StoreFood   <- alloc
+    _Defend      <- alloc
 
     -- We start by searching anything, food, enemies, whatever.               CURRENTLY FOOD ONLY
-    search _Search _TellFood _TellFoehome
+    search _Search _TellFood _TellFoeHome
+
     -- After we found anything, lets go tell the others what we found
-    tell_foehome _TellFoehome
-    tell_food _TellFood
+    tellFoehome _TellFoeHome
+    tellFood _TellFood _GetFood _ReturnFood _StoreFood
+
     -- Now either continue to set a trap, or to get food
-    get_food _GetFood
-    return_food _ReturnFood
+    getFood _GetFood _ReturnFood
+    returnFood _ReturnFood _StoreFood
+    storeFood _StoreFood _GetFood _Defend _ReturnFood
+    -- defend _Defend
 
 
 -- The implementation functions for our strategy
 search :: Entry -> Entry -> Entry -> M ()
-search _this _TellFood _TellFoehome = do
-    _pickUp     <- alloc
-    _turnAround <- alloc
-    _randomWalk <- alloc
+search _this _TellFood _TellFoeHome = do
+    _turnAroundFoe  <- alloc
+    _checkFood      <- alloc
+    _pickUp         <- alloc
+    _turnAroundFood <- alloc
+    _randomWalk     <- alloc
 
-    senseAdjMoveAndNot _this _pickUp _randomWalk _randomWalk Food Home
-    pickup _pickUp _turnAround _randomWalk
-    turnAround _TELL_FOOD
-    randomMove _randomWalk 
+    -- If se see the FoeHome, run away and _TellFoeHome
+    senseAdj _this _turnAroundFoe _checkFood FoeHome
+    turnAround _turnAroundFoe _TellFoeHome
 
-tell_foehome :: M ()
-tell_foehome = do                   -- Total: 1 = 0+1 + 1-1
-    move 0 0                        -- 0: Do nothing useful in particular
+    -- If we see Food (not on our Home), pick it up and TELL_FOOD
+    senseAdjMoveAndNot _checkFood _pickUp _randomWalk _randomWalk Food Home
+    pickup _pickUp _turnAroundFood _randomWalk
+    turnAround _turnAroundFood _TellFood
 
-tell_food :: M ()
-tell_food = do                                             -- Total: 30 = 29+1 + 1-1
-    lnr <- get
-    nextL $ \n -> mark _FOOD n                             -- 0:  tell others our mark
-    senseAdjMove (lnr+7) (lnr+11) (lnr+11) Home            -- 1:  IF   an adjacent cell is my anthill and I moved there
-    nextL $ \n -> drop n                                   -- 7:  THEN drop the food
-    turnAround _GET_FOOD                                   -- 8:       turn around and return searching
-    biasedMove (lnr+29)                                    -- 11: ELSE do one step of the random walk
-    sense Here (lnr+7) lnr Home                            -- 29:      and check if we are accidentally home now (if so, drop and search, of not, try again)
+    -- Otherwise do a random walk and continue searching
+    randomMove _randomWalk _this
 
-get_food :: M ()
-get_food = do                                                -- Total: 31 = 13+1 + 18-1
-    lnr <- get
-    senseAdjMoveAndNot (lnr+9) (lnr+13) (lnr+13) Food Home   -- 0:  IF    there is food (not on Home) and we moved to it
-    nextL $ \n -> pickup n (lnr+13)                          -- 9:  THEN  pickup the food
-    turnAround _RETURN_FOOD                                  -- 10:       turn around and bring the food to our home
-    biasedMove lnr                                           -- 13: ELSE  do one step of a random walk and go on with what we do
 
-return_food :: M ()
-return_food = do                                             -- Total: 30 = 29+1 + 1-1
-    lnr <- get
-    nextL $ \n -> mark _FOOD n                             -- 0:  tell others our mark
-    senseAdjMove (lnr+7) (lnr+11) (lnr+11) Home            -- 1:  IF   an adjacent cell is my anthill and I moved there
-    nextL $ \n -> drop n                                   -- 7:  THEN drop the food
-    turnAround _GET_FOOD                                   -- 8:       turn around and return searching
-    biasedMove (lnr+29)                                    -- 11: ELSE do one step of the random walk
-    sense Here (lnr+7) lnr Home                            -- 29:      and check if we are accidentally home now (if so, drop and search, of not, try again)
+tellFoehome :: Entry -> M ()
+tellFoehome _this = do
+    move _this 0 0
+
+
+tellFood :: Entry -> Entry -> Entry -> Entry -> M ()
+tellFood _this _GetFood _ReturnFood _StoreFood = do
+    _checkExistingMarker <- alloc
+    _checkHome           <- alloc
+    _dropFood            <- alloc
+    _randomWalk          <- alloc
+
+    -- Mark the current spot
+    mark _this _FOOD _checkExistingMarker
+
+    -- Check if there already is a food marker (if so, _ReturnFood)
+    senseAdj _checkExistingMarker _ReturnFood _checkHome (Marker _FOOD)
+
+    -- Check if we are home, if so, _StoreFood
+    senseAdj _checkHome _StoreFood _randomWalk _randomWalk Home
+
+     -- If we did not find home or another food marker, do the random walk
+    randomMove _randomWalk _this
+
+
+getFood :: Entry -> Entry -> M ()
+getFood _this _ReturnFood = do
+    _pickUp         <- alloc
+    _turnAround     <- alloc
+    _tryFollowTrail <- alloc 
+
+    -- Check if we found food, if so, get it, turn around and _ReturnFood
+    senseAdjMoveAndNot _this _pickUp _tryFollowTrail _tryFollowTrail Food Home
+    pickup _pickUp _turnAround _tryFollowTrail
+    turnAround _turnAround _ReturnFood
+
+    -- If we didn't find food, follow the trail to the food
+    tryFollowTrail _tryFollowTrail (Marker _FOOD) _this
+
+
+returnFood :: Entry -> Entry -> M ()
+returnFood _this _StoreFood = do
+    _tryFollowTrail <- alloc
+
+    -- Check if we found home, if so _StoreFood
+    senseAdj _this _StoreFood _tryFollowTrail _tryFollowTrail Home
+
+    -- If we didn't find home, follow the trail
+    tryFollowTrail _tryFollowTrail (Marker _FOOD) _this
 
