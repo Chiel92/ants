@@ -11,14 +11,14 @@ import Prelude hiding (drop, Left, Right, (&&), (||))
 --
 -- A nice way to print our functions
 --
-class Compile r where
-    compile :: String -> Entry -> r
+class PrimitiveInstruction r where
+    instruction :: String -> Entry -> r
 
-instance Compile (M () ) where
-    compile s n = lift $ writer ((), [(n, s)])
+instance PrimitiveInstruction (M ()) where
+    instruction s n = lift $ writer ((), [(n, s)])
 
-instance (Compile r, Show a) => Compile (a -> r) where
-    compile s n x = compile (s ++ " " ++ show x) n
+instance (PrimitiveInstruction r, Show a) => PrimitiveInstruction (a -> r) where
+    instruction s n x = instruction (s ++ " " ++ show x) n
 
 
 type Entry = Int -- Convention: all entry identifiers start with an underscore
@@ -62,28 +62,28 @@ type Mark      = Int
 -- The primitive functions
 --
 sense :: Entry -> SenseDir -> Cont -> Cont -> Condition -> M ()
-sense n = compile "Sense" n
+sense n = instruction "Sense" n
 
 mark :: Entry -> Mark -> Cont -> M ()
-mark n = compile "Mark" n
+mark n = instruction "Mark" n
 
 unmark :: Entry -> Mark -> Cont -> M ()
-unmark n = compile "Unmark" n
+unmark n = instruction "Unmark" n
 
 pickup :: Entry -> Cont -> Cont -> M ()
-pickup n = compile "PickUp" n
+pickup n = instruction "PickUp" n
 
 drop :: Entry -> Cont -> M ()
-drop n = compile "Drop" n
+drop n = instruction "Drop" n
 
 turn :: Entry -> Turn -> Cont -> M ()
-turn n = compile "Turn" n
+turn n = instruction "Turn" n
 
 move :: Entry -> Cont -> Cont -> M ()
-move n = compile "Move" n
+move n = instruction "Move" n
 
 rand :: Entry -> Int -> Cont -> Cont -> M ()
-rand n = compile "Flip" n
+rand n = instruction "Flip" n
 
 
 --
